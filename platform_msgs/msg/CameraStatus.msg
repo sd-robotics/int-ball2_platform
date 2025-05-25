@@ -1,1 +1,1 @@
-platform_msgs/PowerStatus streaming_status
+ib2_platform_msgs/PowerStatus streaming_status

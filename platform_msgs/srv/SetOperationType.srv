@@ -2,7 +2,7 @@
 # Request
 #
 
-platform_msgs/OperationType type
+ib2_platform_msgs/OperationType type
 
 ---
 #

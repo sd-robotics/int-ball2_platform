@@ -1,6 +1,6 @@
-time check_time
-platform_msgs/NodeStatusValue[] publications
-platform_msgs/NodeStatusValue[] subscriptions
-platform_msgs/NodeStatusValue[] services
+builtin_interfaces/Time check_time
+ib2_platform_msgs/NodeStatusValue[] publications
+ib2_platform_msgs/NodeStatusValue[] subscriptions
+ib2_platform_msgs/NodeStatusValue[] services
 # Includes only containers with RUNNING status.
-platform_msgs/ContainerStatus[] containers
+ib2_platform_msgs/ContainerStatus[] containers
