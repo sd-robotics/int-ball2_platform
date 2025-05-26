@@ -1,4 +1,4 @@
-# ib2_platform_msgs
+# ib2_platform_interfaces
 
 ## Overview
 This package contains message and service definitions used in platform packages.

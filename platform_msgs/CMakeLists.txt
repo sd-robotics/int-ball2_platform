@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ib2_platform_msgs)
+project(ib2_platform_interfaces)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)

@@ -1,8 +1,8 @@
 builtin_interfaces/Time stamp
-ib2_platform_msgs/OperationType type
-ib2_platform_msgs/Mode mode
+ib2_platform_interfaces/OperationType type
+ib2_platform_interfaces/Mode mode
 bool start_container
 string last_user
 string last_launch
 string last_image
-ib2_platform_msgs/UserLogic last_user_logic
+ib2_platform_interfaces/UserLogic last_user_logic

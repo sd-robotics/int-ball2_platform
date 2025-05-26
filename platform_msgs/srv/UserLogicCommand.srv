@@ -7,7 +7,7 @@ uint8 START            = 1
 uint8 command
 
 # Parameters for START command
-ib2_platform_msgs/UserLogic logic
+ib2_platform_interfaces/UserLogic logic
 
 ---
 #
