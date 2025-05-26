@@ -19,29 +19,37 @@ namespace
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
-ib2::AttController::AttController() :
+ib2::AttController::AttController() : rclcpp::Node("att_ctl"),
 kp_(1.), kd_(1.)
 {
 }
 
 //------------------------------------------------------------------------------
 // rosparamによるコンストラクタ
-ib2::AttController::AttController(const ros::NodeHandle& nh)
+ib2::AttController::AttController(const rclcpp::NodeOptions & options = rclcpp::NodeOptions()) :
+rclcpp::Node("att_ctl", options)
 {
     using namespace ib2_mss;
     
     double kp(-1.);
     double kd(-1.);
-    nh.getParam("/att_ctl/kp"   , kp);
-    nh.getParam("/att_ctl/kd"   , kd);
+
+    // パラメータの宣言と取得
+    this->declare_parameter("kp", 1.0);
+    this->declare_parameter("kd", 1.0);
+    kp = this->get_parameter("kp").as_double();
+    kd = this->get_parameter("kd").as_double();
+
+    // パラメータの範囲チェック
     RangeCheckerD::notNegative(kp, true, "kp");
     RangeCheckerD::notNegative(kd, true, "kd");
     kp_ = kp;
     kd_ = kd;
 
-    ROS_INFO("******** Set Parameters in att_controller.cpp");
-    ROS_INFO("/att_ctl/kp   : %f", kp_);
-    ROS_INFO("/att_ctl/kd   : %f", kd_);
+    // パラメータのログ出力
+    RCLCPP_INFO(this->get_logger(), "******** Set Parameters in att_controller.cpp");
+    RCLCPP_INFO(this->get_logger(), "/att_ctl/kp   : %f", kp_);
+    RCLCPP_INFO(this->get_logger(), "/att_ctl/kd   : %f", kd_);
 }
 
 //------------------------------------------------------------------------------

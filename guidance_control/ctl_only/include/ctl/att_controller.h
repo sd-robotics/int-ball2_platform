@@ -11,7 +11,7 @@ namespace ib2
     /**
      * @brief 姿勢制御則パラメータ.
      */
-    class AttController final
+    class AttController final : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
@@ -19,10 +19,10 @@ namespace ib2
         /** デフォルトコンストラクタ */
         AttController();
         
-        /** rosparamによるコンストラクタ
-         * @param [in] nh ノードハンドラ
+        /** @brief コンストラクタ
+         * @param [in] options ノードオプション
          */
-        explicit AttController(const ros::NodeHandle& nh);
+        explicit AttController(const rclcpp::NodeOptions & options);
         
         /** デストラクタ. */
         ~AttController();
