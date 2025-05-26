@@ -33,12 +33,12 @@ Dtc::Dtc(const ros::NodeHandle& nh) :
     setMember();
 
     /** 標準偏差計算初期化 */
-	moave_daccx_.reset(new ib2_mss::MovingAverage(que_size_));
-	moave_daccy_.reset(new ib2_mss::MovingAverage(que_size_));
-	moave_daccz_.reset(new ib2_mss::MovingAverage(que_size_));
-	moave_dwx_.reset(new ib2_mss::MovingAverage(que_size_));    
-	moave_dwy_.reset(new ib2_mss::MovingAverage(que_size_));    
-	moave_dwz_.reset(new ib2_mss::MovingAverage(que_size_));    
+    moave_daccx_.reset(new ib2_mss::MovingAverage(que_size_));
+    moave_daccy_.reset(new ib2_mss::MovingAverage(que_size_));
+    moave_daccz_.reset(new ib2_mss::MovingAverage(que_size_));
+    moave_dwx_.reset(new ib2_mss::MovingAverage(que_size_));    
+    moave_dwy_.reset(new ib2_mss::MovingAverage(que_size_));    
+    moave_dwz_.reset(new ib2_mss::MovingAverage(que_size_));    
 }
 
 //------------------------------------------------------------------------------
@@ -234,7 +234,7 @@ void Dtc::check(const int32_t ctl_status)
 // 航法暦
 void Dtc::history(const ib2_msgs::Navigation nav_stamp)
 {
-	static bool init = true;
+    static bool init = true;
 
     // 航法前回値
     if(init) 

@@ -14,20 +14,20 @@ bool ib2_mss::IntOverflow::addable
 (T l, T r, bool throws, const std::string& file,
  const std::string& function, unsigned long lineno)
 {
-	if (r >= 0)
-	{
-		if (l <= std::numeric_limits<T>::max() - r)
-			return true;
-	}
-	else if (l >= std::numeric_limits<T>::min() - r)
-		return true;
-	if (!throws)
-		return false;
-	std::string what("integer overflow occured at addition");
-	std::ostringstream ss;
-	ss << what << ", left=" << l << ", right=" << r;
-	Log::error(ss.str(), file, function, lineno);
-	throw std::overflow_error(what);
+    if (r >= 0)
+    {
+        if (l <= std::numeric_limits<T>::max() - r)
+            return true;
+    }
+    else if (l >= std::numeric_limits<T>::min() - r)
+        return true;
+    if (!throws)
+        return false;
+    std::string what("integer overflow occured at addition");
+    std::ostringstream ss;
+    ss << what << ", left=" << l << ", right=" << r;
+    Log::error(ss.str(), file, function, lineno);
+    throw std::overflow_error(what);
 }
 
 //------------------------------------------------------------------------------
@@ -37,20 +37,20 @@ bool ib2_mss::IntOverflow::subtractable
 (T l, T r, bool throws, const std::string& file,
  const std::string& function, unsigned long lineno)
 {
-	if (r >= 0)
-	{
-		if (l >= std::numeric_limits<T>::min() + r)
-			return true;
-	}
-	else if (l <= std::numeric_limits<T>::max() + r)
-		return true;
-	if (!throws)
-		return false;
-	std::string what("integer overflow occured at subtraction");
-	std::ostringstream ss;
-	ss << what << ", left=" << l << ", right=" << r;
-	Log::error(ss.str(), file, function, lineno);
-	throw std::overflow_error(what);
+    if (r >= 0)
+    {
+        if (l >= std::numeric_limits<T>::min() + r)
+            return true;
+    }
+    else if (l <= std::numeric_limits<T>::max() + r)
+        return true;
+    if (!throws)
+        return false;
+    std::string what("integer overflow occured at subtraction");
+    std::ostringstream ss;
+    ss << what << ", left=" << l << ", right=" << r;
+    Log::error(ss.str(), file, function, lineno);
+    throw std::overflow_error(what);
 }
 
 //------------------------------------------------------------------------------
@@ -60,45 +60,45 @@ bool ib2_mss::IntOverflow::multipliable
 (T l, T r, bool throws, const std::string& file,
  const std::string& function, unsigned long lineno)
 {
-	if (l == 0 || r == 0)
-		return true;
-	else if (r > 0)
-	{
-		if (l > 0)
-		{
-			if (l <= std::numeric_limits<T>::max() / r)
-				return true;
-		}
-		else if(l >= std::numeric_limits<T>::min() / r)
-			return true;
-	}
-	else if(l > 0)
-	{
-		if (r >= std::numeric_limits<T>::min() / l)
-			return true;
-	}
-	else
-	{
-		auto nmin(std::numeric_limits<T>::min());
-		auto nmax(std::numeric_limits<T>::max());
-		if (nmin + nmax <= 0)
-		{
-			if (nmax / l <= r)
-				return true;
-		}
-		else
-		{
-			if (nmax / -r >= -l)
-				return true;
-		}
-	}
-	if (!throws)
-		return false;
-	std::string what("integer overflow occured at multiplication");
-	std::ostringstream ss;
-	ss << what << ", left=" << l << ", right=" << r;
-	Log::error(ss.str(), file, function, lineno);
-	throw std::overflow_error(what);
+    if (l == 0 || r == 0)
+        return true;
+    else if (r > 0)
+    {
+        if (l > 0)
+        {
+            if (l <= std::numeric_limits<T>::max() / r)
+                return true;
+        }
+        else if(l >= std::numeric_limits<T>::min() / r)
+            return true;
+    }
+    else if(l > 0)
+    {
+        if (r >= std::numeric_limits<T>::min() / l)
+            return true;
+    }
+    else
+    {
+        auto nmin(std::numeric_limits<T>::min());
+        auto nmax(std::numeric_limits<T>::max());
+        if (nmin + nmax <= 0)
+        {
+            if (nmax / l <= r)
+                return true;
+        }
+        else
+        {
+            if (nmax / -r >= -l)
+                return true;
+        }
+    }
+    if (!throws)
+        return false;
+    std::string what("integer overflow occured at multiplication");
+    std::ostringstream ss;
+    ss << what << ", left=" << l << ", right=" << r;
+    Log::error(ss.str(), file, function, lineno);
+    throw std::overflow_error(what);
 }
 
 //------------------------------------------------------------------------------
@@ -108,33 +108,33 @@ bool ib2_mss::IntOverflow::dividable
 (T l, T r, bool throws, const std::string& file,
  const std::string& function, unsigned long lineno)
 {
-	if (r > 0)
-		return true;
-	else if (r < 0)
-	{
-		auto nmin(std::numeric_limits<T>::min());
-		auto nmax(std::numeric_limits<T>::max());
-		auto flag(nmin + nmax);
-		if (flag == 0)
-			return true;
-		else if (flag < 0)
-		{
-			if (l > r || r > nmin / nmax || nmax * r < l - r)
-				return true;
-		}
-		else
-		{
-			if (l <= 0 || nmax / -nmin < -r || l + r < nmin * r)
-				return true;
-		}
-	}
-	if (!throws)
-		return false;
-	std::string what("integer overflow occured at division");
-	std::ostringstream ss;
-	ss << what << ", left=" << l << ", right=" << r;
-	Log::error(ss.str(), file, function, lineno);
-	throw std::overflow_error(what);
+    if (r > 0)
+        return true;
+    else if (r < 0)
+    {
+        auto nmin(std::numeric_limits<T>::min());
+        auto nmax(std::numeric_limits<T>::max());
+        auto flag(nmin + nmax);
+        if (flag == 0)
+            return true;
+        else if (flag < 0)
+        {
+            if (l > r || r > nmin / nmax || nmax * r < l - r)
+                return true;
+        }
+        else
+        {
+            if (l <= 0 || nmax / -nmin < -r || l + r < nmin * r)
+                return true;
+        }
+    }
+    if (!throws)
+        return false;
+    std::string what("integer overflow occured at division");
+    std::ostringstream ss;
+    ss << what << ", left=" << l << ", right=" << r;
+    Log::error(ss.str(), file, function, lineno);
+    throw std::overflow_error(what);
 }
 
 //------------------------------------------------------------------------------
