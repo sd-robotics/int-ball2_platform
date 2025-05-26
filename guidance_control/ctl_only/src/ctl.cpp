@@ -19,6 +19,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <cmath>
+#include <chrono>
 
 //------------------------------------------------------------------------------
 // ファイルスコープ
@@ -35,9 +36,9 @@ namespace
 // コンストラクタ
 Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     rclcpp::Node("ctl", options),
-    command_as_(this, COMMAND_ACTION, std::bind(&Ctl::commandCallback, this, std::placeholders::_1), false),
+    // command_as_(this, COMMAND_ACTION, std::bind(&Ctl::commandCallback, this, std::placeholders::_1), false),
     dtc_(this),seq_status_(0),valid_navigation_(false),
-    clock_(this->get_clock()), // TODO: Use the clock from NodeOptions
+    clock_(RCL_ROS_TIME), // TODO: Use the clock from NodeOptions
 {
     RCLCPP_INFO(this->get_logger(), "******** Starting Ctl Node");
     
@@ -45,25 +46,39 @@ Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     setMember();
 
     // TODO: Action server
+    command_as_ = rclcpp_action::create_server<ib2_interfaces::action::CtlCommand>(
+        this,
+        COMMAND_ACTION,
+        std::bind(&Ctl::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&Ctl::handle_cancel, this, std::placeholders::_1),
+        std::bind(&Ctl::handle_accepted, this, std::placeholders::_1));
     command_as_.start();
     
-    // TODO: Service server
-    update_ss_ = nh_.advertiseService(UPDATE_SERVICE, &Ctl::updateCallback, this);
+    // Service server
+    update_ss_ = this->create_service<ib2_interfaces::srv::UpdateParameter>(
+        UPDATE_SERVICE, std::bind(&Ctl::updateCallback, this, std::placeholders::_1, std::placeholders::_2));
     
-    // TODO: Service client
-    marker_sc_ = nh_.serviceClient<ib2_interfaces::srv::MarkerCorrection>("/sensor_fusion/marker_correction");
+    // Service client
+    marker_sc_ = this->create_client<ib2_interfaces::srv::MarkerCorrection>(
+        "/sensor_fusion/marker_correction");
+    
+    // Subscribers
+    navinfo_sub_ = this->create_subscription<ib2_interfaces::msg::Navigation>(
+        TOPIC_NAV_POSE, 5, std::bind(&Ctl::navinfoCallback, this, std::placeholders::_1));
 
-    // TODO: Subscribers
-    navinfo_sub_ = nh_.subscribe(TOPIC_NAV_POSE, 5, &Ctl::navinfoCallback, this);
+    // Advertised messages
+    wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+        TOPIC_CTL_WRENCH, 5);
 
-    // TODO: Advertised messages
-    wrench_pub_ = nh_.advertise<geometry_msgs::msg::WrenchStamped>(TOPIC_CTL_WRENCH, 5);
+    // Advertised messages
+    profile_pub_ = this->create_publisher<ib2_interfaces::msg::CtlProfile>(
+        TOPIC_CTL_PROFILE, 5);
+    status_pub_  = this->create_publisher<ib2_interfaces::msg::CtlStatus>(
+        TOPIC_CTL_STATUS, 5);
 
-    // TODO: Advertised messages
-    profile_pub_ = nh_.advertise<ib2_interfaces::msg::CtlProfile>(TOPIC_CTL_PROFILE, 5);
-    status_pub_  = nh_.advertise<ib2_interfaces::msg::CtlStatus> (TOPIC_CTL_STATUS,  5);
-
-    timer_ = nh_.createTimer(interval_status_, &Ctl::timerCallback, this);
+    timer_ = this->create_wall_timer(
+        std::chrono::nanoseconds(interval_status_.nanoseconds()),
+        std::bind(&Ctl::timerCallback, this));
 }
 
 //------------------------------------------------------------------------------
@@ -266,7 +281,7 @@ void Ctl::setKeepPose()
 {
     controller_->flash();
     auto profmsg(profiler_->setProfile(last_nav_stamp_));
-    profile_pub_.publish(profmsg);
+    profile_pub_->publish(profmsg);
 }
 
 //------------------------------------------------------------------------------
@@ -282,7 +297,7 @@ bool Ctl::guidance(int32_t goal_type, double tolp, double tola)
         if (!command_as_.isActive())
             break;
         tnav = last_nav_stamp_.pose.header.stamp;
-        if (clock.now() - tnav >= waitCancel_)
+        if (clock_.now() - tnav >= waitCancel_)
         {
             timeoutNavigation();
             break;
@@ -290,8 +305,8 @@ bool Ctl::guidance(int32_t goal_type, double tolp, double tola)
         auto fb = profiler_->statesToGoal(last_nav_stamp_);
         if (tnav - tfb >= interval_feedback_)
         {
-            command_as_.publishFeedback(fb);
-            tfb = clock.now();
+            command_as_->publishFeedback(fb);
+            tfb = clock_.now();
         }
         if (goal_type == ib2_interfaces::msg::CtlStatusType::SCAN ? 
             reachGoalScan(stayGoal, tbGoal, tnav, fb, tola):
@@ -324,12 +339,12 @@ bool Ctl::guidance(int32_t goal_type, double tolp, double tola)
 
 //------------------------------------------------------------------------------
 // ターゲットモードの処理
-void Ctl::target(const ib2_interfaces::msg::CtlCommandGoalConstPtr& goal)
+void Ctl::target(const ib2_interfaces::action::CtlCommand::Goal& goal)
 {
     status_ = goal->type.type;
 
     auto profmsg(profiler_->setProfile(last_nav_stamp_, goal, *body_));
-    profile_pub_.publish(profmsg);
+    profile_pub_->publish(profmsg);
     controller_->flash();
     
     if (guidance(goal->type.type, tolerance_pos_, tolerance_att_))
@@ -362,7 +377,7 @@ void Ctl::release()
             auto fb = profiler_->statesToGoal(last_nav_stamp_);
             if (tnav - tfb >= interval_feedback_)
             {
-                command_as_.publishFeedback(fb);
+                command_as_->publishFeedback(fb);
                 tfb = tnav;
             }
             if (command_as_.isPreemptRequested() || !rclcpp::ok())
@@ -377,7 +392,7 @@ void Ctl::release()
         auto ipos(ib2::PosAttProfiler::DOCKING_POS::AIP);
         auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
         auto profmsg(profiler_->dockingProfile(last_nav_stamp_, ipos, iatt, *body_));
-        profile_pub_.publish(profmsg);
+        profile_pub_->publish(profmsg);
         controller_->flash();
         if (guidance(ib2_interfaces::msg::CtlStatusType::RELEASE, tolerance_pos_, tolerance_att_))
             goalTarget();
@@ -403,7 +418,7 @@ void Ctl::docking(bool correction)
                   ib2::PosAttProfiler::DOCKING_ATT::AIA : 
                   ib2::PosAttProfiler::DOCKING_ATT::RDA);
         auto profmsg(profiler_->dockingProfile(last_nav_stamp_, ipos, iatt, *body_));
-        profile_pub_.publish(profmsg);
+        profile_pub_->publish(profmsg);
         controller_->flash();
         
         if (!guidance(ib2_interfaces::msg::CtlStatusType::DOCK, 
@@ -453,7 +468,7 @@ void Ctl::dockingStandBy()
 
     controller_->flash();
     auto profmsg(profiler_->setProfile(dtc_.dockingTarget(tnav)));
-    profile_pub_.publish(profmsg);
+    profile_pub_->publish(profmsg);
 
     bool aborted(false);
     while (tnav < toff)
@@ -462,7 +477,7 @@ void Ctl::dockingStandBy()
         auto fb = profiler_->statesToGoal(last_nav_stamp_);
         if (tnav - tfb >= interval_feedback_)
         {
-            command_as_.publishFeedback(fb);
+            command_as_->publishFeedback(fb);
             tfb = tnav;
         }
         if (reachGoalDock())
@@ -487,7 +502,7 @@ void Ctl::scan()
     for (size_t i = 0; i < nscan; ++i)
     {
         auto profmsg(profiler_->scanProfile(last_nav_stamp_, i, *body_));
-        profile_pub_.publish(profmsg);
+        profile_pub_->publish(profmsg);
         controller_->flash();
         
         if (!guidance(ib2_interfaces::msg::CtlStatusType::SCAN, 
@@ -499,7 +514,7 @@ void Ctl::scan()
         else if (i + 1 == nscan)
         {
             ib2_interfaces::action::CtlCommand::Result r;
-            r.stamp = clock.now();
+            r.stamp = clock_.now();
             r.type = ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV;
             command_as_.setSucceeded(r);
             status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
@@ -513,7 +528,7 @@ void Ctl::stopping()
 {
     status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
     auto profmsg(profiler_->stoppingProfile(last_nav_stamp_, *body_));
-    profile_pub_.publish(profmsg);
+    profile_pub_->publish(profmsg);
     controller_->flash();
     if (guidance(ib2_interfaces::msg::CtlStatusType::STOP_MOVING, 
                  tolerance_pos_stop_, tolerance_att_stop_))
@@ -526,7 +541,7 @@ void Ctl::stopping()
 void Ctl::abortAction(uint8_t result_type)
 {
     ib2_interfaces::action::CtlCommand::Result r;
-    r.stamp = clock.now();
+    r.stamp = clock_.now();
     r.type = result_type;
     if (command_as_.isActive())
         command_as_.setPreempted(r);
@@ -539,7 +554,7 @@ void Ctl::cancelTarget(bool docking)
     RCLCPP_INFO(this->get_logger(), "%s: Preempted", COMMAND_ACTION.c_str());
     status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
     auto profmsg(profiler_->stoppingProfile(last_nav_stamp_, *body_));
-    profile_pub_.publish(profmsg);
+    profile_pub_->publish(profmsg);
     controller_->flash();
 
     auto tnav = last_nav_stamp_.pose.header.stamp;
@@ -549,7 +564,7 @@ void Ctl::cancelTarget(bool docking)
     while (tnav < te)
     {
         tnav = last_nav_stamp_.pose.header.stamp;
-        if (clock.now() - tnav >= waitCancel_)
+        if (clock_.now() - tnav >= waitCancel_)
         {
             timeoutNavigation();
             break;
@@ -567,7 +582,7 @@ void Ctl::cancelTarget(bool docking)
         auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
         auto profmsg(profiler_->dockingProfile
                      (last_nav_stamp_, ipos, iatt, *body_));
-        profile_pub_.publish(profmsg);
+        profile_pub_->publish(profmsg);
         controller_->flash();
 
         auto tnav = last_nav_stamp_.pose.header.stamp;
@@ -577,7 +592,7 @@ void Ctl::cancelTarget(bool docking)
         while (tnav < te)
         {
             tnav = last_nav_stamp_.pose.header.stamp;
-            if (clock.now() - tnav >= waitCancel_)
+            if (clock_.now() - tnav >= waitCancel_)
             {
                 timeoutNavigation();
                 break;
@@ -597,7 +612,7 @@ void Ctl::goalTarget()
 {
     RCLCPP_INFO(this->get_logger(), "%s: Succeeded", COMMAND_ACTION.c_str());
     ib2_interfaces::action::CtlCommand::Result r;
-    r.stamp = clock.now();
+    r.stamp = clock_.now();
     r.type = ib2_interfaces::action::CtlCommand::Result::TERMINATE_SUCCESS;
     command_as_.setSucceeded(r);
     controller_->flash();
@@ -613,9 +628,9 @@ void Ctl::timeoutNavigation()
     setKeepPose();
     status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
 
-    auto wrench = controller_->wrenchCommandStop(clock.now());
+    auto wrench = controller_->wrenchCommandStop(clock_.now());
     //fsm_->subscribeCommand(wrench);    // Modification for platform packages
-    wrench_pub_.publish(wrench);
+    wrench_pub_->publish(wrench);
 }
 
 //------------------------------------------------------------------------------
@@ -782,7 +797,8 @@ bool Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first
         }
         return true;
     }
-    ROS_INFO("Invalid Navigation(NaN/infinite)");
+    RCLCPP_INFO(this->get_logger(), "Invalid Navigation(NaN/infinite)");
+    
     return false;
 }
 
@@ -839,23 +855,23 @@ void Ctl::commandCallback(const ib2_interfaces::action::CtlCommand::Goal& goal)
 
 //------------------------------------------------------------------------------
 // Callback of update parameter service
-bool Ctl::updateCallback
-(ib2_interfaces::srv::UpdateParameter::Request&,
- ib2_interfaces::srv::UpdateParameter::Response& res)
+bool Ctl::updateCallback(
+    const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
+    std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res)
 {
     // ROS_INFO("Update Parameters by /ctl/update_params");
     RCLCPP_INFO(this->get_logger(), "%s: Updating parameters", UPDATE_SERVICE.c_str());
 
-    res.stamp = clock.now();
+    res->stamp = clock_.now();
     if (setMember())
     {
         RCLCPP_INFO(this->get_logger(), "%s: Succeeded", UPDATE_SERVICE.c_str());
-        res.status = ib2_interfaces::srv::UpdateParameter::Response::SUCCESS;
+        res->status = ib2_interfaces::srv::UpdateParameter::Response::SUCCESS;
     }
     else
     {
         RCLCPP_ERROR(this->get_logger(), "%s: Failed", UPDATE_SERVICE.c_str());
-        res.status = ib2_interfaces::srv::UpdateParameter::Response::FAILURE_UPDATE;
+        res->status = ib2_interfaces::srv::UpdateParameter::Response::FAILURE_UPDATE;
     }
     return true;
 }
@@ -938,7 +954,7 @@ void Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
             {
                 auto wrench = controller_->wrenchCommandStop(nav_stamp.pose.header.stamp);
                 //fsm_->subscribeCommand(wrench);    /// Modification for platform packages
-                wrench_pub_.publish(wrench);
+                wrench_pub_->publish(wrench);
                 publishWrench = false;
             }
         }
@@ -961,7 +977,7 @@ void Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
             
             // publish
             //fsm_->subscribeCommand(wrench);    // Modification for platform packages
-            wrench_pub_.publish(wrench);
+            wrench_pub_->publish(wrench);
         }
     }
     catch (const std::exception& e) 
@@ -977,14 +993,14 @@ void Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
 
 //------------------------------------------------------------------------------
 // Callback of publish on the TOPIC_NAV_POSE
-void Ctl::timerCallback(const ros::TimerEvent& ev)
+void Ctl::timerCallback()
 {
     try 
     {
-        auto p = profiler_->posAttProfile(ev.current_real);
+        auto p = profiler_->posAttProfile(clock_.now());
         auto msg(p.status(status_));
         // msg.pose.header.seq = ++seq_status_;
-        status_pub_.publish(msg);
+        status_pub_->publish(msg);
     }
     catch (const std::exception& e) 
     {
@@ -1001,11 +1017,11 @@ void Ctl::timerCallback(const ros::TimerEvent& ev)
 // メイン関数
 int main(int argc, char **argv)
 {
-    //ros::init(argc, argv, "ctl");    // Modification for platform packages
-    rclcpp::init(argc, argv, "ctl_only");
-    rclcpp::NodeHandle nh_;
-    Ctl Ctl(nh_);
-    rclcpp::spin();
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<Ctl>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
     return 0;
 }
+
 // End Of File -----------------------------------------------------------------

@@ -189,9 +189,9 @@ public:
      * @retval true 更新成功
      * @retval false 更新失敗
      */
-    bool updateCallback
-    (ib2_interfaces::srv::UpdateParameter::Request&,
-     ib2_interfaces::srv::UpdateParameter::Response& res);
+    bool updateCallback(
+        const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
+        std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res);
 
     /** 航法値のサブスクライバのコールバック関数
      * @param [in] nav_stamp 航法値
@@ -201,22 +201,29 @@ public:
     /** 定期的な処理
      * @param [in] ev タイマーイベント
      */
-    void timerCallback(const ros::TimerEvent& ev);
+    void timerCallback();
 
     //----------------------------------------------------------------------
     // メンバ変数
 private:
     /** ROS2のクロック */
-    rclcpp::Clock::SharedPtr clock_;
+    rclcpp::Clock clock_;
 
     /** 制御目標アクションサーバ */
-    actionlib::SimpleActionServer<ib2_interfaces::action::CtlCommand> command_as_;
-    
+    rclcpp_action::Server<ib2_interfaces::action::CtlCommand>::SharedPtr command_as_;
+    rclcpp_action::GoalResponse handle_goal(
+        const rclcpp_action::GoalUUID & uuid,
+        std::shared_ptr<const ib2_interfaces::action::CtlCommand::Goal> goal);
+    rclcpp_action::CancelResponse handle_cancel(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle);
+    void handle_accepted(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle);
+
     /** パラメータ更新サービスサーバ */
-    ros::ServiceServer update_ss_;
+    rclcpp::Service<ib2_interfaces::srv::UpdateParameter>::SharedPtr update_ss_;
 
     /** マーカー補正サービスクライアント */
-    ros::ServiceClient marker_sc_;
+    rclcpp::Client<ib2_interfaces::srv::MarkerCorrection>::SharedPtr marker_sc_;
     
     /** 誘導制御ステータス出力間隔 */
     rclcpp::Duration interval_status_;
@@ -271,20 +278,20 @@ private:
     
     // Subscriber
     /** 航法値のサブスクライバ */
-    ros::Subscriber navinfo_sub_;
+    rclcpp::Subscription<ib2_interfaces::msg::Navigation>::SharedPtr navinfo_sub_;
 
-    /** 目標値のサブスクライバ */
-    ros::Subscriber target_sub_;
+    /** TODO: 目標値のサブスクライバ */
+    rclcpp::Subscription<ib2_interfaces::msg::Navigation>::SharedPtr target_sub_;
 
     // Publisher
     /** 誘導制御モードパブリッシャ */
-    ros::Publisher status_pub_;
+    rclcpp::Publisher<ib2_interfaces::msg::CtlStatus>::SharedPtr status_pub_;
 
     /** 力トルクのパブリッシャ */
-    ros::Publisher wrench_pub_;
+    rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr wrench_pub_;
 
     /** 制御プロファイルのパブリッシャ */
-    ros::Publisher profile_pub_;
+    rclcpp::Publisher<ib2_interfaces::msg::CtlProfile>::SharedPtr profile_pub_;
 
     /** 航法メッセージの前回値 */
     ib2_interfaces::msg::Navigation last_nav_stamp_;
@@ -308,7 +315,7 @@ private:
     int32_t status_;
 
     /** ステータス出力タイマー */
-    ros::Timer timer_;
+    rclcpp::TimerBase::SharedPtr timer_;
 
     /** CtlStatus sequcens id  */
     mutable uint32_t seq_status_;
@@ -316,5 +323,34 @@ private:
     /** 航法えメッセージ取得フラグ */
     bool valid_navigation_;
 };
+
+
+rclcpp_action::GoalResponse Ctl::handle_goal(
+    const rclcpp_action::GoalUUID & uuid,
+    std::shared_ptr<const ib2_interfaces::action::CtlCommand::Goal> goal)
+{
+    RCLCPP_INFO(this->get_logger(), "Received goal request with target position: [%f, %f, %f]",
+                goal->target.pose.position.x,
+                goal->target.pose.position.y,
+                goal->target.pose.position.z);
+    (void)uuid;
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+rclcpp_action::CancelResponse Ctl::handle_cancel(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle)
+{
+    RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+    (void)goal_handle;
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+void Ctl::handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle)
+{
+    using namespace std::placeholders;
+    // this needs to return quickly to avoid blocking the executor, so spin up a new thread
+    std::thread{std::bind(&Ctl::commandCallback, this, _1), goal_handle}.detach();
+}
+
 
 // End Of File -----------------------------------------------------------------
