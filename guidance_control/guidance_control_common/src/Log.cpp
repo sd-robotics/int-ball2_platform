@@ -2,7 +2,7 @@
 #include "guidance_control_common/Log.h"
 #include "guidance_control_common/FileWriter.h"
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <iomanip>
 #include <iostream>

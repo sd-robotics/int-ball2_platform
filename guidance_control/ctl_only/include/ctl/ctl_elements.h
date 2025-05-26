@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include "ib2_msgs/CtlStatus.h"
+#include "ib2_interfaces/msg/ctl_status.hpp"
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <Eigen/Dense>
 
 /**

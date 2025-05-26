@@ -7,7 +7,7 @@
 #include "ctl/pos_profiler.h"
 #include "ctl/att_profiler.h"
 #include "ctl/pos_att_profiler.h"
-#include "ib2_msgs/MarkerCorrection.h"
+#include "ib2_interfaces/srv/marker_correction.hpp"
 
 #include "guidance_control_common/Log.h"
 #include "guidance_control_common/Constants.h"

@@ -1,8 +1,8 @@
 
 #include "ctl/pos_att_profiler.h"
 #include "ctl/ctl_body.h"
-#include "ib2_msgs/Navigation.h"
-#include "ib2_msgs/CtlStatusType.h"
+#include "ib2_interfaces/msg/navigation.hpp"
+#include "ib2_interfaces/msg/ctl_status_type.hpp"
 #include "guidance_control_common/Constants.h"
 #include "guidance_control_common/Utility.h"
 #include "guidance_control_common/RangeChecker.h"

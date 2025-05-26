@@ -1,10 +1,10 @@
 
 #pragma once
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <Eigen/Dense>
-#include <geometry_msgs/WrenchStamped.h>
-#include "ib2_msgs/Navigation.h"
+#include <geometry_msgs/msg/wrench_stamped.hpp>
+#include "ib2_interfaces/msg/navigation.hpp"
 #include "ctl/pos_controller.h"
 #include "ctl/att_controller.h"
 #include "ctl/ctl_elements.h"

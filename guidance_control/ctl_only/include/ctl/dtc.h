@@ -1,15 +1,15 @@
 
 #pragma once
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <deque>
 
 #include <Eigen/Dense>
 
 // Standard messages
-#include "ib2_msgs/Navigation.h"
-#include "ib2_msgs/CtlStatus.h"
+#include "ib2_interfaces/msg/navigation.hpp"
+#include "ib2_interfaces/msg/ctl_status.hpp"
 
 #include "guidance_control_common/MovingAverage.h"
 

@@ -1,6 +1,6 @@
 
 #include "ctl/ctl_elements.h"
-#include "ib2_msgs/Navigation.h"
+#include "ib2_interfaces/msg/navigation.hpp"
 
 
 namespace
