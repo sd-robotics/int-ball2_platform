@@ -38,7 +38,7 @@ namespace ib2
 /**
 * @brief 制御ノードクラス
 */
-class Ctl
+class Ctl : public rclcpp::Node
 {
     //----------------------------------------------------------------------
     // コンストラクタ/デストラクタ
@@ -48,7 +48,7 @@ private:
 
 public:
     /** コンストラクタ */
-    explicit Ctl(const ros::NodeHandle& nh);
+    explicit Ctl(const rclcpp::NodeOptions& options);
 
     /** デストラクタ */
     ~Ctl();
@@ -95,7 +95,7 @@ private:
     /** ターゲットモードの処理
      * @param [in] goal 制御目標
      */
-    void target(const ib2_msgs::CtlCommandGoalConstPtr& goal);
+    void target(const ib2_interfaces::action::CtlCommand::Goal& goal);
     
     /** リリースモードの処理 */
     void release();
@@ -140,8 +140,8 @@ private:
      * @return 制御目標到達判定結果
      */
     bool reachGoal
-    (bool& stay, ros::Time& tin, const ros::Time& tnav,
-     const ib2_msgs::CtlCommandFeedback& fb, double tolp, double tola);
+    (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
+     const ib2_interfaces::action::CtlCommand::Feedback& fb, double tolp, double tola);
 
     /** 制御目標到達判定(SCAN)
      * @param [in, out] stay 制御目標周辺継続判定結果
@@ -152,8 +152,8 @@ private:
      * @return 制御目標到達判定結果
      */
     bool reachGoalScan
-    (bool& stay, ros::Time& tin, const ros::Time& tnav,
-     const ib2_msgs::CtlCommandFeedback& fb, double tola);
+    (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
+     const ib2_interfaces::action::CtlCommand::Feedback& fb, double tola);
 
     /** 制御目標到達判定(DOCK)
      * @return 制御目標到達判定結果
@@ -165,7 +165,7 @@ private:
      * @retval true 妥当
      * @retval false 不正
      */
-    bool validCommand(const ib2_msgs::CtlCommandGoalConstPtr& goal) const;
+    bool validCommand(const ib2_interfaces::action::CtlCommand::Goal& goal) const;
 
     /** 航法メッセージ妥当性確認
      * @param [in] nav 判定対象航法メッセージ
@@ -173,7 +173,7 @@ private:
      * @retval true 妥当
      * @retval false 不正
      */
-    bool validNavigation(const ib2_msgs::Navigation& nav, bool first) const;
+    bool validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first) const;
     
     //--------------------------------------------------------------------------
     // 実装（コールバック関数）
@@ -181,7 +181,7 @@ public:
     /** 制御目標アクション受信時の処理
      * @param [in] goal 制御目標値メッセージ
      */
-    void commandCallback(const ib2_msgs::CtlCommandGoalConstPtr& goal);
+    void commandCallback(const ib2_interfaces::action::CtlCommand::Goal& goal);
 
     /** パラメータ更新サービス受信時の処理
      * @param [in] パラメータ更新サービスリクエスト
@@ -190,13 +190,13 @@ public:
      * @retval false 更新失敗
      */
     bool updateCallback
-    (ib2_msgs::UpdateParameter::Request&,
-     ib2_msgs::UpdateParameter::Response& res);
+    (ib2_interfaces::srv::UpdateParameter::Request&,
+     ib2_interfaces::srv::UpdateParameter::Response& res);
 
     /** 航法値のサブスクライバのコールバック関数
      * @param [in] nav_stamp 航法値
      */
-    void navinfoCallback(const ib2_msgs::Navigation& nav_stamp);
+    void navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp);
 
     /** 定期的な処理
      * @param [in] ev タイマーイベント
@@ -206,11 +206,11 @@ public:
     //----------------------------------------------------------------------
     // メンバ変数
 private:
-    /** ROSノードハンドラ */
-    ros::NodeHandle nh_;
+    /** ROS2のクロック */
+    rclcpp::Clock::SharedPtr clock_;
 
     /** 制御目標アクションサーバ */
-    actionlib::SimpleActionServer<ib2_msgs::CtlCommandAction> command_as_;
+    actionlib::SimpleActionServer<ib2_interfaces::action::CtlCommand> command_as_;
     
     /** パラメータ更新サービスサーバ */
     ros::ServiceServer update_ss_;
@@ -219,13 +219,13 @@ private:
     ros::ServiceClient marker_sc_;
     
     /** 誘導制御ステータス出力間隔 */
-    ros::Duration interval_status_;
+    rclcpp::Duration interval_status_;
     
     /** フィードバック間隔 */
-    ros::Duration interval_feedback_;
+    rclcpp::Duration interval_feedback_;
 
     /** 目標到達継続時間 */
-    ros::Duration duration_goal_;
+    rclcpp::Duration duration_goal_;
     
     /** 制御目標位置到達判定値[m] */
     double tolerance_pos_;
@@ -258,16 +258,16 @@ private:
     double nav_dw_;
     
     /** ターゲットキャンセルの待ち時間 */
-    ros::Duration waitCancel_;
+    rclcpp::Duration waitCancel_;
     
     /** リリース開始からAIP移動開始までの待ち時間 */
-    ros::Duration waitRelease_;
+    rclcpp::Duration waitRelease_;
     
     /** ホーミング時VisualSLAM較正の待ち時間 */
-    ros::Duration waitCalibration_;
+    rclcpp::Duration waitCalibration_;
     
     /** ドッキング開始からスタンバイまでの待ち時間 */
-    ros::Duration waitDocking_;
+    rclcpp::Duration waitDocking_;
     
     // Subscriber
     /** 航法値のサブスクライバ */
@@ -287,7 +287,7 @@ private:
     ros::Publisher profile_pub_;
 
     /** 航法メッセージの前回値 */
-    ib2_msgs::Navigation last_nav_stamp_;
+    ib2_interfaces::msg::Navigation last_nav_stamp_;
 
     /** 機体パラメータ */
     std::unique_ptr<ib2::CtlBody> body_;
