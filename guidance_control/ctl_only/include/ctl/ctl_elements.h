@@ -25,7 +25,7 @@ public:
      * @param [in] q 姿勢クォータニオン
      * @param [in] w 角速度ベクトル
      */
-    CtlElements(const ros::Time& t, 
+    CtlElements(const rclcpp::Time& t,
                 const Eigen::Vector3d& r, const Eigen::Vector3d& v,
                 const Eigen::Vector3d& a,
                 const Eigen::Quaterniond& q, const Eigen::Vector3d& w);
@@ -54,7 +54,7 @@ public:
     /** ROS時刻の参照
      * @return 位置ベクトルの参照
      */
-    const ros::Time& t() const;
+    const rclcpp::Time& t() const;
 
     /** 位置ベクトルの参照
      * @return 位置ベクトルの参照
@@ -85,13 +85,13 @@ public:
      * @param [in] status 誘導制御ステータス
      * @return 誘導制御ステータスメッセージ
      */
-    ib2_msgs::CtlStatus status(int32_t status) const;
+    ib2_interfaces::msg::CtlStatus status(int32_t status) const;
 
     //--------------------------------------------------------------------------
     // メンバ変数
 private:
     /** 時刻 */
-    ros::Time t_;
+    rclcpp::Time t_;
 
     /** 位置ベクトル */
     Eigen::Vector3d r_;

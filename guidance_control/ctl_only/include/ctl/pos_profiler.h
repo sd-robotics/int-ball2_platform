@@ -9,7 +9,7 @@ namespace ib2
     /**
      * @brief 位置制御プロファイルパラメータ.
      */
-    class PosProfiler final
+    class PosProfiler final : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
@@ -17,10 +17,10 @@ namespace ib2
         /** デフォルトコンストラクタ */
         PosProfiler();
 
-        /** rosparamによるコンストラクタ
-         * @param [in] nh ノードハンドラ
+        /** @brief コンストラクタ
+         * @param options ノードオプション
          */
-        explicit PosProfiler(const ros::NodeHandle& nh);
+        explicit PosProfiler(const rclcpp::NodeOptions& options);
 
         /** デストラクタ. */
         ~PosProfiler();

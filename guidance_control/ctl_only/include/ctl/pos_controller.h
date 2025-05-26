@@ -10,7 +10,7 @@ namespace ib2
     /**
      * @brief 位置制御則パラメータ.
      */
-    class PosController final
+    class PosController final : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
@@ -18,10 +18,10 @@ namespace ib2
         /** デフォルトコンストラクタ */
         PosController();
 
-        /** rosparamによるコンストラクタ
-         * @param [in] nh ノードハンドラ
+        /** @brief コンストラクタ
+         * @param options ノードオプション
          */
-        explicit PosController(const ros::NodeHandle& nh);
+        explicit PosController(const rclcpp::NodeOptions &options);
 
         /** デストラクタ. */
         ~PosController();
@@ -83,7 +83,7 @@ namespace ib2
          * @retval     力コマンド
          */
         Eigen::Vector3d forceCommand
-        (const ros::Time& t, const Eigen::Vector3d &r, const Eigen::Vector3d &v,
+        (const rclcpp::Time& t, const Eigen::Vector3d &r, const Eigen::Vector3d &v,
          const Eigen::Quaterniond& q, const CtlElements &p, double m);
 
         //----------------------------------------------------------------------
@@ -105,7 +105,7 @@ namespace ib2
         Eigen::Vector3d s_;
 
         /** 積分値s_のタイムタグ */
-        ros::Time ts_;//
+        rclcpp::Time ts_;//
     };
 }
 

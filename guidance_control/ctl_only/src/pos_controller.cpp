@@ -24,14 +24,16 @@ namespace
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
 ib2::PosController::PosController() :
+rclcpp::Node("pos_controller"),
 kp_(1.), ki_(1.), kd_(1.), Fmax_(1.), s_(Eigen::Vector3d::Zero()), ts_()
 {
 }
 
 //------------------------------------------------------------------------------
 // rosparamによるコンストラクタ
-ib2::PosController::PosController(const ros::NodeHandle& nh) :
-    s_(Eigen::Vector3d::Zero()), ts_()
+ib2::PosController::PosController(const rclcpp::NodeOptions &options = rclcpp::NodeOptions()) :
+rclcpp::Node("pos_ctl", options),
+s_(Eigen::Vector3d::Zero()), ts_()
 {
     using namespace ib2_mss;
 
@@ -40,25 +42,34 @@ ib2::PosController::PosController(const ros::NodeHandle& nh) :
     double kd(-1.);
     double Fmax(-1.);
     
-    nh.getParam("/pos_ctl/kp"     , kp);
-    nh.getParam("/pos_ctl/ki"     , ki);
-    nh.getParam("/pos_ctl/kd"     , kd);
-    nh.getParam("/pos_ctl/fi_max" , Fmax);
+    // パラメータの宣言
+    this->declare_parameter("kp", 1.0);
+    this->declare_parameter("ki", 1.0);
+    this->declare_parameter("kd", 1.0);
+    this->declare_parameter("fi_max", 1.0);
+
+    // パラメータの取得
+    kp   = this->get_parameter("kp").as_double();
+    ki   = this->get_parameter("kp").as_double();
+    kd   = this->get_parameter("kp").as_double();
+    Fmax = this->get_parameter("kp").as_double();
+
+    // パラメータの範囲チェック
     RangeCheckerD::notNegative(kp, true, "kp");
     RangeCheckerD::notNegative(ki, true, "ki");
     RangeCheckerD::notNegative(kd, true, "kd");
     RangeCheckerD::notNegative(Fmax, true, "Fmax");
-    kp_ = kp;
-    ki_ = ki;
-    kd_ = kd;
+    kp_   = kp;
+    ki_   = ki;
+    kd_   = kd;
     Fmax_ = Fmax;
 
-    ROS_INFO("******** Set Parameters in pos_controller.cpp");
-    ROS_INFO("/pos_ctl/kp       : %f", kp);
-    ROS_INFO("/pos_ctl/ki       : %f", ki);
-    ROS_INFO("/pos_ctl/kd       : %f", kd);
-    ROS_INFO("/pos_ctl/fi_max   : %f", Fmax);
-
+    // パラメータの表示
+    RCLCPP_INFO(get_logger(), "******** Set Parameters in pos_controller.cpp");
+    RCLCPP_INFO(get_logger(), "kp       : %f", kp);
+    RCLCPP_INFO(get_logger(), "ki       : %f", ki);
+    RCLCPP_INFO(get_logger(), "kd       : %f", kd);
+    RCLCPP_INFO(get_logger(), "fi_max   : %f", Fmax);
 }
 
 //------------------------------------------------------------------------------
@@ -87,7 +98,7 @@ ib2::PosController& ib2::PosController::operator=(PosController&&) = default;
 void ib2::PosController::flash()
 {
     s_ = Eigen::Vector3d::Zero();
-    ts_ = ros::Time();
+    ts_ = rclcpp::Time();
 }
 
 //------------------------------------------------------------------------------
@@ -121,7 +132,7 @@ double ib2::PosController::Fmax() const
 //------------------------------------------------------------------------------
 // 力コマンド計算
 Eigen::Vector3d ib2::PosController::forceCommand
-(const ros::Time& t, const Eigen::Vector3d &r,const Eigen::Vector3d& v,
+(const rclcpp::Time& t, const Eigen::Vector3d &r,const Eigen::Vector3d& v,
  const Eigen::Quaterniond& q, const CtlElements &p, double m)
 {
     // 誤差量計算
@@ -130,7 +141,7 @@ Eigen::Vector3d ib2::PosController::forceCommand
 
     // 積分量計算と飽和処理
     auto dt(t - ts_);
-    s_ = s_ + re * dt.toSec();
+    s_ = s_ + re * dt.seconds();
     s_ = saturation(s_, Fmax_);
     ts_ = t;
 

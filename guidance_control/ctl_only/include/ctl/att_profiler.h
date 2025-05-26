@@ -9,7 +9,7 @@ namespace ib2
     /**
      * @brief 姿勢制御プロファイルパラメータ.
      */
-    class AttProfiler final
+    class AttProfiler final : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
@@ -17,10 +17,10 @@ namespace ib2
         /** デフォルトコンストラクタ */
         AttProfiler();
         
-        /** rosparamによるコンストラクタ
-         * @param [in] nh ノードハンドラ
+        /** @brief コンストラクタ
+         * @param options ノードオプション
          */
-        explicit AttProfiler(const ros::NodeHandle& nh);
+        explicit AttProfiler(const rclcpp::NodeOptions & options);
         
         /** デストラクタ. */
         ~AttProfiler();

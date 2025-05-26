@@ -61,11 +61,11 @@ void ib2::PosAttController::flash()
 
 //------------------------------------------------------------------------------
 // 制御停止時の力トルクコマンドの計算
-geometry_msgs::WrenchStamped ib2::PosAttController::wrenchCommandStop
-(const ros::Time& t)
+geometry_msgs::msg::WrenchStamped ib2::PosAttController::wrenchCommandStop
+(const rclcpp::Time& t)
 {
-    geometry_msgs::WrenchStamped cmd;
-    cmd.header.seq         = ++seq_;
+    geometry_msgs::msg::WrenchStamped cmd;
+    // cmd.header.seq         = ++seq_;
     cmd.header.stamp       = t;
     cmd.header.frame_id    = "body";
     cmd.wrench.force.x     = 0.;
@@ -79,8 +79,8 @@ geometry_msgs::WrenchStamped ib2::PosAttController::wrenchCommandStop
 
 //------------------------------------------------------------------------------
 // 力トルクコマンドの計算
-geometry_msgs::WrenchStamped ib2::PosAttController::wrenchCommand
-(const ib2_msgs::Navigation& nav, const CtlElements &p, const ib2::CtlBody& b)
+geometry_msgs::msg::WrenchStamped ib2::PosAttController::wrenchCommand
+(const ib2_interfaces::msg::Navigation& nav, const CtlElements &p, const ib2::CtlBody& b)
 {
     // 航法値
     auto& tn(nav.pose.header.stamp);
@@ -89,7 +89,7 @@ geometry_msgs::WrenchStamped ib2::PosAttController::wrenchCommand
     auto& vn(nav.twist.linear);
     auto& wn(nav.twist.angular);
 
-    ros::Time t(tn);
+    rclcpp::Time t(tn);
     Eigen::Vector3d  r(rn.x, rn.y, rn.z);
     Eigen::Quaterniond q(qn.w, qn.x, qn.y, qn.z);
     Eigen::Vector3d  v(vn.x, vn.y, vn.z);
@@ -99,8 +99,8 @@ geometry_msgs::WrenchStamped ib2::PosAttController::wrenchCommand
     Eigen::Vector3d force  = pos_.forceCommand(t, r, v, q, p, b.m());
     Eigen::Vector3d torque = att_.torqueCommand(q, w, p, b.Is());
 
-    geometry_msgs::WrenchStamped cmd;
-    cmd.header.seq         = ++seq_;
+    geometry_msgs::msg::WrenchStamped cmd;
+    // cmd.header.seq         = ++seq_;
     cmd.header.stamp       = tn;
     cmd.header.frame_id    = "body";
     cmd.wrench.force.x     = force.x();

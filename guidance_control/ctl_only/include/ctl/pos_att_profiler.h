@@ -110,44 +110,44 @@ namespace ib2
         /** 位置姿勢誘導プロファイル作成（現在位置姿勢で静止）
          * @param [in] nav 航法値
          */
-        ib2_msgs::CtlProfile setProfile(const ib2_msgs::Navigation& nav);
+        ib2_interfaces::msg::CtlProfile setProfile(const ib2_interfaces::msg::Navigation& nav);
 
         /** 位置姿勢誘導プロファイル作成
          * @param [in] nav 航法値
          * @param [in] goal 制御目標
          */
-        ib2_msgs::CtlProfile setProfile
-        (const ib2_msgs::Navigation& nav, 
-         const ib2_msgs::CtlCommandGoalConstPtr& goal, const CtlBody& b);
+        ib2_interfaces::msg::CtlProfile setProfile
+        (const ib2_interfaces::msg::Navigation& nav, 
+         const ib2_interfaces::action::CtlCommand::Goal& goal, const CtlBody& b);
 
         /** 位置姿勢停止誘導プロファイル作成
          * @param [in] nav 航法値
          * @param [in] b 機体質量特性
          */
-        ib2_msgs::CtlProfile stoppingProfile
-        (const ib2_msgs::Navigation& nav, const CtlBody& b);
+        ib2_interfaces::msg::CtlProfile stoppingProfile
+        (const ib2_interfaces::msg::Navigation& nav, const CtlBody& b);
 
         /** ドッキング誘導プロファイル作成
          * @param [in] nav 航法値
          * @param [in] pos 目標位置番号
          * @param [in] att 目標姿勢番号
          */
-        ib2_msgs::CtlProfile dockingProfile
-        (const ib2_msgs::Navigation& nav,
+        ib2_interfaces::msg::CtlProfile dockingProfile
+        (const ib2_interfaces::msg::Navigation& nav,
          const DOCKING_POS& pos, const DOCKING_ATT& att, const CtlBody& b);
     
         /** スキャンモードプロファイル作成
          * @param [in] nav 航法値
          * @param [in] iaxis スキャン回転軸番号
          */
-        ib2_msgs::CtlProfile scanProfile
-        (const ib2_msgs::Navigation& nav, size_t iaxis, const CtlBody& b);
+        ib2_interfaces::msg::CtlProfile scanProfile
+        (const ib2_interfaces::msg::Navigation& nav, size_t iaxis, const CtlBody& b);
     
     private:
         /** 初期位置姿勢の設定
          * @param [in] nav 航法値
          */
-        void setPose(const ib2_msgs::Navigation& nav);
+        void setPose(const ib2_interfaces::msg::Navigation& nav);
 
         /** 並進プロファイルの設定
          * @param [in] dr 移動量
@@ -173,12 +173,12 @@ namespace ib2
         /** プロファイル終了時刻の取得
          * @return プロファイル終了時刻
          */
-        ros::Time te() const;
+        rclcpp::Time te() const;
 
         /** プロファイルメッセージの取得
          * @return プロファイルメッセージ
          */
-        ib2_msgs::CtlProfile message() const;
+        ib2_interfaces::msg::CtlProfile message() const;
 
         //----------------------------------------------------------------------
         // 実装
@@ -186,15 +186,15 @@ namespace ib2
         /** 位置姿勢誘導プロファイルに基づき基準値計算
          * @param [in] t_stamp 現在時刻
          */
-        CtlElements posAttProfile(const ros::Time& t_stamp) const;
+        CtlElements posAttProfile(const rclcpp::Time& t_stamp) const;
 
         /** 制御目標までの状態量計算
          * @param [in] nav 航法値
          * @return 制御終了までの時間[sec]
          * @return 目標位置姿勢までの誤差
          */
-        ib2_msgs::CtlCommandFeedback statesToGoal
-        (const ib2_msgs::Navigation& nav) const;
+        ib2_interfaces::action::CtlCommand::Feedback statesToGoal
+        (const ib2_interfaces::msg::Navigation& nav) const;
 
     private:
         /** 位置誘導リファレンス値計算
@@ -221,7 +221,7 @@ namespace ib2
         //    rCMD;
 
         /** プロファイル作成時刻 */
-        ros::Time t0_;
+        rclcpp::Time t0_;
 
         /** 位置誘導プロファイルパラメータ */
         PosProfiler pos_;
@@ -294,4 +294,3 @@ namespace ib2
 }
 
 // End Of File -----------------------------------------------------------------
-

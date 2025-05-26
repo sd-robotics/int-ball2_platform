@@ -7,24 +7,26 @@
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
 ib2::CtlBody::CtlBody() :
+rclcpp::Node("ctl_body"),
 m_(1.), Is_(Eigen::Matrix3d::Identity())
 {
 }
 
 //------------------------------------------------------------------------------
 // rosparamによるコンストラクタ
-ib2::CtlBody::CtlBody(const ros::NodeHandle& nh) :
+ib2::CtlBody::CtlBody(const rclcpp::NodeOptions & options = rclcpp::NodeOptions()) :
+rclcpp::Node("ctl_body", options),
 m_(1.), Is_(Eigen::Matrix3d::Identity())
 {
     using namespace ib2_mss;
     
-    static const std::string ROSPARAM_MASS ("/ctl_body/mass");
-    static const std::string ROSPARAM_IS_XX("/ctl_body/Is/xx");
-    static const std::string ROSPARAM_IS_YY("/ctl_body/Is/yy");
-    static const std::string ROSPARAM_IS_ZZ("/ctl_body/Is/zz");
-    static const std::string ROSPARAM_IS_XY("/ctl_body/Is/xy");
-    static const std::string ROSPARAM_IS_YZ("/ctl_body/Is/yz");
-    static const std::string ROSPARAM_IS_ZX("/ctl_body/Is/zx");
+    static const std::string ROSPARAM_MASS ("mass");
+    static const std::string ROSPARAM_IS_XX("Is/xx");
+    static const std::string ROSPARAM_IS_YY("Is/yy");
+    static const std::string ROSPARAM_IS_ZZ("Is/zz");
+    static const std::string ROSPARAM_IS_XY("Is/xy");
+    static const std::string ROSPARAM_IS_YZ("Is/yz");
+    static const std::string ROSPARAM_IS_ZX("Is/zx");
     
     double mass(-1.);
     double Is_xx(-1.);
@@ -34,14 +36,25 @@ m_(1.), Is_(Eigen::Matrix3d::Identity())
     double Is_yz(0.);
     double Is_zx(0.);
     
-    nh.getParam(ROSPARAM_MASS, mass);
-    nh.getParam(ROSPARAM_IS_XX, Is_xx);
-    nh.getParam(ROSPARAM_IS_YY, Is_yy);
-    nh.getParam(ROSPARAM_IS_ZZ, Is_zz);
-    nh.getParam(ROSPARAM_IS_XY, Is_xy);
-    nh.getParam(ROSPARAM_IS_YZ, Is_yz);
-    nh.getParam(ROSPARAM_IS_ZX, Is_zx);
+    // パラメータの宣言
+    this->declare_parameter(ROSPARAM_MASS, mass);
+    this->declare_parameter(ROSPARAM_IS_XX, Is_xx);
+    this->declare_parameter(ROSPARAM_IS_YY, Is_yy);
+    this->declare_parameter(ROSPARAM_IS_ZZ, Is_zz);
+    this->declare_parameter(ROSPARAM_IS_XY, Is_xy);
+    this->declare_parameter(ROSPARAM_IS_YZ, Is_yz);
+    this->declare_parameter(ROSPARAM_IS_ZX, Is_zx);
+
+    // パラメータの取得
+    mass  = this->get_parameter(ROSPARAM_MASS).as_double();
+    Is_xx = this->get_parameter(ROSPARAM_MASS).as_double();
+    Is_yy = this->get_parameter(ROSPARAM_MASS).as_double();
+    Is_zz = this->get_parameter(ROSPARAM_MASS).as_double();
+    Is_xy = this->get_parameter(ROSPARAM_MASS).as_double();
+    Is_yz = this->get_parameter(ROSPARAM_MASS).as_double();
+    Is_zx = this->get_parameter(ROSPARAM_MASS).as_double();
     
+    // パラメータのチェック
     RangeCheckerD::positive(mass , true, ROSPARAM_MASS);
     RangeCheckerD::positive(Is_xx, true, ROSPARAM_IS_XX);
     RangeCheckerD::positive(Is_yy, true, ROSPARAM_IS_YY);
@@ -58,14 +71,15 @@ m_(1.), Is_(Eigen::Matrix3d::Identity())
     Is_(2,1) = Is_(1,2);
     Is_(0,2) = Is_(2,0);
 
-    ROS_INFO("******** Set Parameters in ctl_body.cpp");
-    ROS_INFO("%s   : %f", ROSPARAM_MASS.c_str(),  m_);
-    ROS_INFO("%s   : %f", ROSPARAM_IS_XX.c_str(), Is_(0, 0));
-    ROS_INFO("%s   : %f", ROSPARAM_IS_YY.c_str(), Is_(1, 1));
-    ROS_INFO("%s   : %f", ROSPARAM_IS_ZZ.c_str(), Is_(2, 2));
-    ROS_INFO("%s   : %f", ROSPARAM_IS_XY.c_str(), Is_(0, 1));
-    ROS_INFO("%s   : %f", ROSPARAM_IS_YZ.c_str(), Is_(1, 2));
-    ROS_INFO("%s   : %f", ROSPARAM_IS_ZX.c_str(), Is_(2, 0));
+    // パラメータの表示
+    RCLCPP_INFO(this->get_logger(), "******** Set Parameters in ctl_body.cpp");
+    RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_MASS.c_str(),  m_);
+    RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_IS_XX.c_str(), Is_(0, 0));
+    RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_IS_YY.c_str(), Is_(1, 1));
+    RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_IS_ZZ.c_str(), Is_(2, 2));
+    RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_IS_XY.c_str(), Is_(0, 1));
+    RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_IS_YZ.c_str(), Is_(1, 2));
+    RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_IS_ZX.c_str(), Is_(2, 0));
 }
 
 //------------------------------------------------------------------------------

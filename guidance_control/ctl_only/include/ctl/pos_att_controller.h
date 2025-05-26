@@ -72,7 +72,7 @@ namespace ib2
          * @param [in] t コマンド時刻
          * @return 力トルクコマンドメッセージ
          */
-        geometry_msgs::WrenchStamped wrenchCommandStop(const ros::Time& t);
+        geometry_msgs::msg::WrenchStamped wrenchCommandStop(const rclcpp::Time& t);
         
         /** 力トルクコマンドの計算
          * @param [in] nav 航法値
@@ -80,8 +80,8 @@ namespace ib2
          * @param [in] b 機体質量特性
          * @return 力トルクコマンドメッセージ
          */
-        geometry_msgs::WrenchStamped wrenchCommand
-        (const ib2_msgs::Navigation& nav, 
+        geometry_msgs::msg::WrenchStamped wrenchCommand
+        (const ib2_interfaces::msg::Navigation& nav, 
          const CtlElements& p, const CtlBody& b);
         
         //----------------------------------------------------------------------

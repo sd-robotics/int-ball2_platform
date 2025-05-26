@@ -7,6 +7,7 @@
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
 ib2::AttProfiler::AttProfiler() :
+rclcpp::Node("att_profile"),
 Tmax_(0.), wmax_(0.), qthr_(ib2_mss::DEG),
 epsQm_(1.e-9), aia_(Eigen::Quaterniond::Identity()), 
 rda_(Eigen::Quaterniond::Identity()), scanAxes_(2, Eigen::Vector3d::UnitX())
@@ -15,7 +16,8 @@ rda_(Eigen::Quaterniond::Identity()), scanAxes_(2, Eigen::Vector3d::UnitX())
 
 //------------------------------------------------------------------------------
 // rosparamによるコンストラクタ
-ib2::AttProfiler::AttProfiler(const ros::NodeHandle& nh) :
+ib2::AttProfiler::AttProfiler(const rclcpp::NodeOptions & options = rclcpp::NodeOptions()) :
+rclcpp::Node("att_profile", options),
 Tmax_(0.), wmax_(0.), qthr_(ib2_mss::DEG),
 epsQm_(1.e-9), aia_(Eigen::Quaterniond::Identity()), 
 rda_(Eigen::Quaterniond::Identity()), scanAxes_(3, Eigen::Vector3d::UnitX())
@@ -28,10 +30,10 @@ rda_(Eigen::Quaterniond::Identity()), scanAxes_(3, Eigen::Vector3d::UnitX())
     static const RangeCheckerD EPS_RANGE
     (RangeCheckerD::TYPE::GT_LE, 0., 0.0002, true);
     
-    static const std::string ROSPARAM_T_MAX("/att_profile/t_max");
-    static const std::string ROSPARAM_W_MAX("/att_profile/w_max");
-    static const std::string ROSPARAM_Q_THR("/att_profile/theta_threshold");
-    static const std::string ROSPARAM_EPS  ("/att_profile/eps_qm");
+    static const std::string ROSPARAM_T_MAX("t_max");
+    static const std::string ROSPARAM_W_MAX("w_max");
+    static const std::string ROSPARAM_Q_THR("theta_threshold");
+    static const std::string ROSPARAM_EPS  ("eps_qm");
 
     double Tmax(-1.);
     double wmax(-1.);
@@ -41,28 +43,53 @@ rda_(Eigen::Quaterniond::Identity()), scanAxes_(3, Eigen::Vector3d::UnitX())
     Eigen::Quaterniond rda(0., 0., 0., 0.);
     std::vector<Eigen::Vector3d> scan(3, Eigen::Vector3d::Zero());
 
-    nh.getParam(ROSPARAM_T_MAX, Tmax);
-    nh.getParam(ROSPARAM_W_MAX, wmax);
-    nh.getParam(ROSPARAM_Q_THR, qthr);
-    nh.getParam(ROSPARAM_EPS  , eps_qm);
-    nh.getParam("/att_profile/aia/x", aia.x());
-    nh.getParam("/att_profile/aia/y", aia.y());
-    nh.getParam("/att_profile/aia/z", aia.z());
-    nh.getParam("/att_profile/aia/w", aia.w());
-    nh.getParam("/att_profile/rda/x", rda.x());
-    nh.getParam("/att_profile/rda/y", rda.y());
-    nh.getParam("/att_profile/rda/z", rda.z());
-    nh.getParam("/att_profile/rda/w", rda.w());
-    nh.getParam("/att_profile/scan/axis1/x", scan.at(0).x());
-    nh.getParam("/att_profile/scan/axis1/y", scan.at(0).y());
-    nh.getParam("/att_profile/scan/axis1/z", scan.at(0).z());
-    nh.getParam("/att_profile/scan/axis2/x", scan.at(1).x());
-    nh.getParam("/att_profile/scan/axis2/y", scan.at(1).y());
-    nh.getParam("/att_profile/scan/axis2/z", scan.at(1).z());
-    nh.getParam("/att_profile/scan/axis3/x", scan.at(2).x());
-    nh.getParam("/att_profile/scan/axis3/y", scan.at(2).y());
-    nh.getParam("/att_profile/scan/axis3/z", scan.at(2).z());
+    // パラメータの宣言
+    this->declare_parameter(ROSPARAM_T_MAX, Tmax);
+    this->declare_parameter(ROSPARAM_W_MAX, wmax);
+    this->declare_parameter(ROSPARAM_Q_THR, qthr);
+    this->declare_parameter(ROSPARAM_EPS, eps_qm);
+    this->declare_parameter("aia/x", aia.x());
+    this->declare_parameter("aia/y", aia.y());
+    this->declare_parameter("aia/z", aia.z());
+    this->declare_parameter("aia/w", aia.w());
+    this->declare_parameter("rda/x", rda.x());
+    this->declare_parameter("rda/y", rda.y());
+    this->declare_parameter("rda/z", rda.z());
+    this->declare_parameter("rda/w", rda.w());
+    this->declare_parameter("scan/axis1/x", scan.at(0).x());
+    this->declare_parameter("scan/axis1/y", scan.at(0).y());
+    this->declare_parameter("scan/axis1/z", scan.at(0).z());
+    this->declare_parameter("scan/axis2/x", scan.at(1).x());
+    this->declare_parameter("scan/axis2/y", scan.at(1).y());
+    this->declare_parameter("scan/axis2/z", scan.at(1).z());
+    this->declare_parameter("scan/axis3/x", scan.at(2).x());
+    this->declare_parameter("scan/axis3/y", scan.at(2).y());
+    this->declare_parameter("scan/axis3/z", scan.at(2).z());
 
+    // パラメータの取得
+    Tmax    = this->get_parameter(ROSPARAM_T_MAX).as_double();
+    wmax    = this->get_parameter(ROSPARAM_W_MAX).as_double();
+    qthr    = this->get_parameter(ROSPARAM_Q_THR).as_double();
+    eps_qm  = this->get_parameter(ROSPARAM_EPS).as_double();
+    aia.x() = this->get_parameter("aia/x").as_double();
+    aia.y() = this->get_parameter("aia/y").as_double();
+    aia.z() = this->get_parameter("aia/z").as_double();
+    aia.w() = this->get_parameter("aia/w").as_double();
+    rda.x() = this->get_parameter("rda/x").as_double();
+    rda.y() = this->get_parameter("rda/y").as_double();
+    rda.z() = this->get_parameter("rda/z").as_double();
+    rda.w() = this->get_parameter("rda/w").as_double();
+    scan.at(0).x() = this->get_parameter("scan/axis1/x").as_double();
+    scan.at(0).y() = this->get_parameter("scan/axis1/y").as_double();
+    scan.at(0).z() = this->get_parameter("scan/axis1/z").as_double();
+    scan.at(1).x() = this->get_parameter("scan/axis2/x").as_double();
+    scan.at(1).y() = this->get_parameter("scan/axis2/y").as_double();
+    scan.at(1).z() = this->get_parameter("scan/axis2/z").as_double();
+    scan.at(2).x() = this->get_parameter("scan/axis3/x").as_double();
+    scan.at(2).y() = this->get_parameter("scan/axis3/y").as_double();
+    scan.at(2).z() = this->get_parameter("scan/axis3/z").as_double();
+
+    // パラメータのチェック
     T_MAX_RANGE.valid(Tmax, ROSPARAM_T_MAX);
     W_MAX_RANGE.valid(wmax, ROSPARAM_W_MAX);
     RangeCheckerD::notNegative(qthr, true, ROSPARAM_Q_THR);
@@ -85,28 +112,30 @@ rda_(Eigen::Quaterniond::Identity()), scanAxes_(3, Eigen::Vector3d::UnitX())
     rda_ = rda.normalized();
     scanAxes_ = scan;
 
-    ROS_INFO("******** Set Parameters in att_profiler.cpp");
-    ROS_INFO("/att_profile/t_max           : %f", Tmax_);
-    ROS_INFO("/att_profile/w_max           : %f", wmax_);
-    ROS_INFO("/att_profile/theta_threshold : %f", qthr_);
-    ROS_INFO("/att_profile/eps_qm          : %f", epsQm_);
-    ROS_INFO("/att_profile/aia_x           : %f", aia_.x());
-    ROS_INFO("/att_profile/aia_y           : %f", aia_.y());
-    ROS_INFO("/att_profile/aia_z           : %f", aia_.z());
-    ROS_INFO("/att_profile/aia_w           : %f", aia_.w());
-    ROS_INFO("/att_profile/rda_x           : %f", rda_.x());
-    ROS_INFO("/att_profile/rda_y           : %f", rda_.y());
-    ROS_INFO("/att_profile/rda_z           : %f", rda_.z());
-    ROS_INFO("/att_profile/rda_w           : %f", rda_.w());
-    ROS_INFO("/att_profile/scan/axis1/x         : %f", scanAxes_.at(0).x());
-    ROS_INFO("/att_profile/scan/axis1/y         : %f", scanAxes_.at(0).y());
-    ROS_INFO("/att_profile/scan/axis1/z         : %f", scanAxes_.at(0).z());
-    ROS_INFO("/att_profile/scan/axis2/x         : %f", scanAxes_.at(1).x());
-    ROS_INFO("/att_profile/scan/axis2/y         : %f", scanAxes_.at(1).y());
-    ROS_INFO("/att_profile/scan/axis2/z         : %f", scanAxes_.at(1).z());
-    ROS_INFO("/att_profile/scan/axis3/x         : %f", scanAxes_.at(2).x());
-    ROS_INFO("/att_profile/scan/axis3/y         : %f", scanAxes_.at(2).y());
-    ROS_INFO("/att_profile/scan/axis3/z         : %f", scanAxes_.at(2).z());
+    // パラメータの表示
+    RCLCPP_INFO(this->get_logger(),
+            "******** Set Parameters in att_profiler.cpp");
+    RCLCPP_INFO(this->get_logger(), "t_max           : %f", Tmax_);
+    RCLCPP_INFO(this->get_logger(), "w_max           : %f", wmax_);
+    RCLCPP_INFO(this->get_logger(), "theta_threshold : %f", qthr_);
+    RCLCPP_INFO(this->get_logger(), "eps_qm          : %f", epsQm_);
+    RCLCPP_INFO(this->get_logger(), "aia_x           : %f", aia_.x());
+    RCLCPP_INFO(this->get_logger(), "aia_y           : %f", aia_.y());
+    RCLCPP_INFO(this->get_logger(), "aia_z           : %f", aia_.z());
+    RCLCPP_INFO(this->get_logger(), "aia_w           : %f", aia_.w());
+    RCLCPP_INFO(this->get_logger(), "rda_x           : %f", rda_.x());
+    RCLCPP_INFO(this->get_logger(), "rda_y           : %f", rda_.y());
+    RCLCPP_INFO(this->get_logger(), "rda_z           : %f", rda_.z());
+    RCLCPP_INFO(this->get_logger(), "rda_w           : %f", rda_.w());
+    RCLCPP_INFO(this->get_logger(), "scan/axis1/x    : %f", scanAxes_.at(0).x());
+    RCLCPP_INFO(this->get_logger(), "scan/axis1/y    : %f", scanAxes_.at(0).y());
+    RCLCPP_INFO(this->get_logger(), "scan/axis1/z    : %f", scanAxes_.at(0).z());
+    RCLCPP_INFO(this->get_logger(), "scan/axis2/x    : %f", scanAxes_.at(1).x());
+    RCLCPP_INFO(this->get_logger(), "scan/axis2/y    : %f", scanAxes_.at(1).y());
+    RCLCPP_INFO(this->get_logger(), "scan/axis2/z    : %f", scanAxes_.at(1).z());
+    RCLCPP_INFO(this->get_logger(), "scan/axis3/x    : %f", scanAxes_.at(2).x());
+    RCLCPP_INFO(this->get_logger(), "scan/axis3/y    : %f", scanAxes_.at(2).y());
+    RCLCPP_INFO(this->get_logger(), "scan/axis3/z    : %f", scanAxes_.at(2).z());
 }
 
 //------------------------------------------------------------------------------

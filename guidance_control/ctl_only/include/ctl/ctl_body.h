@@ -10,7 +10,7 @@ namespace ib2
     /**
      * @brief 位置制御プロファイルパラメータ.
      */
-    class CtlBody final
+    class CtlBody final : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
@@ -18,10 +18,10 @@ namespace ib2
         /** デフォルトコンストラクタ */
         CtlBody();
 
-        /** rosparamによるコンストラクタ
-         * @param [in] nh ノードハンドラ
+        /** @brief コンストラクタ
+         * @param options ノードオプション
          */
-        explicit CtlBody(const ros::NodeHandle& nh);
+        explicit CtlBody(const rclcpp::NodeOptions& options);
 
         /** デストラクタ. */
         ~CtlBody();

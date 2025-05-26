@@ -21,7 +21,7 @@ namespace
      * @return 姿勢移動量[ND]
      */
     std::pair<Eigen::Vector3d, Eigen::Quaterniond> maneuver
-    (const ib2_msgs::CtlCommandGoalConstPtr& goal)
+    (const ib2_interfaces::action::CtlCommand::Goal& goal)
     {
         using namespace ib2_mss;
         auto& drg(goal->target.pose.position);
@@ -191,8 +191,8 @@ bool ib2::PosAttProfiler::setConfigThr(const ib2::ThrustAllocator& thr)
 
 //------------------------------------------------------------------------------
 // 位置姿勢誘導プロファイル作成
-ib2_msgs::CtlProfile ib2::PosAttProfiler::setProfile
-(const ib2_msgs::Navigation& nav)
+ib2_interfaces::msg::CtlProfile ib2::PosAttProfiler::setProfile
+(const ib2_interfaces::msg::Navigation& nav)
 {
     // 初期位置姿勢設定
     setPose(nav);
@@ -220,9 +220,9 @@ ib2_msgs::CtlProfile ib2::PosAttProfiler::setProfile
 
 //------------------------------------------------------------------------------
 // 位置姿勢誘導プロファイル作成
-ib2_msgs::CtlProfile ib2::PosAttProfiler::setProfile
-(const ib2_msgs::Navigation& nav,
- const ib2_msgs::CtlCommandGoalConstPtr& goal, const ib2::CtlBody& b) 
+ib2_interfaces::msg::CtlProfile ib2::PosAttProfiler::setProfile
+(const ib2_interfaces::msg::Navigation& nav,
+ const ib2_interfaces::action::CtlCommand::Goal& goal, const ib2::CtlBody& b) 
 {
     // 初期位置姿勢設定
     setPose(nav);
@@ -231,7 +231,7 @@ ib2_msgs::CtlProfile ib2::PosAttProfiler::setProfile
     Eigen::Vector3d dr;
     Eigen::Quaterniond dq;
     std::tie(dr, dq) = maneuver(goal);
-    if (goal->type.type == ib2_msgs::CtlStatusType::MOVE_TO_ABSOLUTE_TARGET)
+    if (goal->type.type == ib2_interfaces::msg::CtlStatusType::MOVE_TO_ABSOLUTE_TARGET)
         std::tie(dr, dq) = maneuver(r0_, q0_, dr, dq);
 
     // 目標位置設定
@@ -246,8 +246,8 @@ ib2_msgs::CtlProfile ib2::PosAttProfiler::setProfile
 
 //------------------------------------------------------------------------------
 // 位置姿勢停止誘導プロファイル作成
-ib2_msgs::CtlProfile ib2::PosAttProfiler::stoppingProfile
-(const ib2_msgs::Navigation& nav, const ib2::CtlBody& b)
+ib2_interfaces::msg::CtlProfile ib2::PosAttProfiler::stoppingProfile
+(const ib2_interfaces::msg::Navigation& nav, const ib2::CtlBody& b)
 {
     // 初期位置姿勢設定
     setPose(nav);
@@ -282,8 +282,8 @@ ib2_msgs::CtlProfile ib2::PosAttProfiler::stoppingProfile
 
 //------------------------------------------------------------------------------
 // ホーミングモードプロファイル作成
-ib2_msgs::CtlProfile ib2::PosAttProfiler::dockingProfile
-(const ib2_msgs::Navigation& nav, const DOCKING_POS& pos, const DOCKING_ATT& att,
+ib2_interfaces::msg::CtlProfile ib2::PosAttProfiler::dockingProfile
+(const ib2_interfaces::msg::Navigation& nav, const DOCKING_POS& pos, const DOCKING_ATT& att,
  const ib2::CtlBody& b)
 {
     // 初期位置姿勢設定
@@ -306,8 +306,8 @@ ib2_msgs::CtlProfile ib2::PosAttProfiler::dockingProfile
 
 //------------------------------------------------------------------------------
 // スキャンモードプロファイル作成
-ib2_msgs::CtlProfile ib2::PosAttProfiler::scanProfile
-(const ib2_msgs::Navigation& nav, size_t iaxis, const ib2::CtlBody& b)
+ib2_interfaces::msg::CtlProfile ib2::PosAttProfiler::scanProfile
+(const ib2_interfaces::msg::Navigation& nav, size_t iaxis, const ib2::CtlBody& b)
 {
     // 初期位置姿勢設定
     setPose(nav);
@@ -328,7 +328,7 @@ ib2_msgs::CtlProfile ib2::PosAttProfiler::scanProfile
 
 //------------------------------------------------------------------------------
 // 初期位置姿勢の設定
-void ib2::PosAttProfiler::setPose(const ib2_msgs::Navigation& nav)
+void ib2::PosAttProfiler::setPose(const ib2_interfaces::msg::Navigation& nav)
 {
     auto& tn(nav.pose.header.stamp);
     auto& rn(nav.pose.pose.position);
@@ -380,16 +380,16 @@ size_t ib2::PosAttProfiler::nscan() const
 
 //------------------------------------------------------------------------------
 // プロファイル終了時刻の取得
-ros::Time ib2::PosAttProfiler::te() const
+rclcpp::Time ib2::PosAttProfiler::te() const
 {
     double dur(seq_ == SEQUENCE::PARALLEL ? std::max(xtt_, qtt_) : xtt_ + qtt_);
-    ros::Duration d(dur);
+    rclcpp::Duration d(dur);
     return t0_ + d;
 }
 
 //------------------------------------------------------------------------------
 // 誘導制御プロファイルメッセージの取得
-ib2_msgs::CtlProfile ib2::PosAttProfiler::message() const
+ib2_interfaces::msg::CtlProfile ib2::PosAttProfiler::message() const
 {
     std::vector<double> dtx{xcb_, xce_, xtt_};
     std::vector<double> dtq{qcb_, qce_, qtt_};
@@ -422,28 +422,28 @@ ib2_msgs::CtlProfile ib2::PosAttProfiler::message() const
     }
 
     auto n(dt.size());
-    ib2_msgs::CtlProfile p;
-    p.header.seq = ++msg_seq_;
+    ib2_interfaces::msg::CtlProfile p;
+    // p.header.seq = ++msg_seq_;
     p.header.stamp = t0_;
     p.header.frame_id = FRAME_ISS;
     p.poses.resize(n);
     for (size_t i = 0; i < n; ++i)
     {
-        ros::Duration d(dt.at(i));
+        rclcpp::Duration d(dt.at(i));
         auto s(posAttProfile(t0_ + d).status(0));
         p.poses[i] = s.pose;
-        p.poses[i].header.seq = static_cast<uint32_t>(i);
+        // p.poses[i].header.seq = static_cast<uint32_t>(i);
     }
     return p;
 }
 
 //------------------------------------------------------------------------------
 // 位置姿勢誘導プロファイルに基づき基準値計算
-CtlElements ib2::PosAttProfiler::posAttProfile(const ros::Time& t_stamp) const
+CtlElements ib2::PosAttProfiler::posAttProfile(const rclcpp::Time& t_stamp) const
 {
     // プロファイル開始からの経過秒
-    ros::Duration d(t_stamp - t0_);
-    double t(d.toSec());
+    rclcpp::Duration d(t_stamp - t0_);
+    double t(d.seconds());
 //TODO    ROS_INFO("interval = %f\n",t);
 
     // 位置誘導プロファイル計算
@@ -460,21 +460,21 @@ CtlElements ib2::PosAttProfiler::posAttProfile(const ros::Time& t_stamp) const
 
 //------------------------------------------------------------------------------
 // 制御目標までの状態量計算
-ib2_msgs::CtlCommandFeedback ib2::PosAttProfiler::statesToGoal
-(const ib2_msgs::Navigation& nav) const
+ib2_interfaces::action::CtlCommand::Feedback ib2::PosAttProfiler::statesToGoal
+(const ib2_interfaces::msg::Navigation& nav) const
 {
     using namespace ib2_mss;
     auto& tn(nav.pose.header.stamp);
     auto& rn(nav.pose.pose.position);
     auto& qn(nav.pose.pose.orientation);
 
-    ib2_msgs::CtlCommandFeedback fb;
+    ib2_interfaces::action::CtlCommand::Feedback fb;
 
     // 制御終了までの時間
-    ros::Duration d(tn - t0_);
-    double t(d.toSec());
+    rclcpp::Duration d(tn - t0_);
+    double t(d.seconds());
     double dur(seq_ == SEQUENCE::PARALLEL ? std::max(xtt_, qtt_) : xtt_ + qtt_);
-    ros::Duration dp(dur);
+    rclcpp::Duration dp(dur);
     fb.time_to_go = dp - d;
 
     // 目標位置までの距離
