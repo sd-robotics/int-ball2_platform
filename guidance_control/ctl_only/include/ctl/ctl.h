@@ -115,9 +115,9 @@ private:
     void stopping();
     
     /** アクション中止
-     * @param [in] reult_type アクション結果種別
+     * @param [in] result_type アクション結果種別
      */
-    void abortAction(uint8_t reult_type);
+    void abortAction(uint8_t result_type);
     
     /** 制御目標キャンセル時の処理
      * @param [in] docking ドッキングモードフラグ

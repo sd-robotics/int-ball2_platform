@@ -98,12 +98,12 @@ bool Ctl::setMember()
         static const std::string ROSPARAM_WAIT_RELEASE      ("/ctl/wait_release");
         static const std::string ROSPARAM_WAIT_CALIBRATION  ("/ctl/wait_calibration");
         static const std::string ROSPARAM_WAIT_DOCKING      ("/ctl/wait_docking");
-        static const std::string ROSPARAM_NAV_COUNTER("/navigation_check/nc");
-        static const std::string ROSPARAM_NAV_DR("/navigation_check/dr");
-        static const std::string ROSPARAM_NAV_DV("/navigation_check/dv");
-        static const std::string ROSPARAM_NAV_DA("/navigation_check/da");
-        static const std::string ROSPARAM_NAV_DQ("/navigation_check/dq");
-        static const std::string ROSPARAM_NAV_DW("/navigation_check/dw");
+        static const std::string ROSPARAM_NAV_COUNTER       ("/navigation_check/nc");
+        static const std::string ROSPARAM_NAV_DR            ("/navigation_check/dr");
+        static const std::string ROSPARAM_NAV_DV            ("/navigation_check/dv");
+        static const std::string ROSPARAM_NAV_DA            ("/navigation_check/da");
+        static const std::string ROSPARAM_NAV_DQ            ("/navigation_check/dq");
+        static const std::string ROSPARAM_NAV_DW            ("/navigation_check/dw");
 
         double interval_status   (-1.);
         double interval_feedback (-1.);
@@ -500,11 +500,11 @@ void Ctl::stopping()
 
 //------------------------------------------------------------------------------
 // アクション中止
-void Ctl::abortAction(uint8_t reult_type)
+void Ctl::abortAction(uint8_t result_type)
 {
     ib2_msgs::CtlCommandResult r;
     r.stamp = ros::Time::now();
-    r.type = reult_type;
+    r.type = result_type;
     if (command_as_.isActive())
         command_as_.setPreempted(r);
 }
