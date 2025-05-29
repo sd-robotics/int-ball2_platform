@@ -23,7 +23,7 @@ namespace ib2
     /**
      * @brief 位置姿勢プロファイルクラス
      */
-    class PosAttProfiler
+    class PosAttProfiler : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // 列挙子
@@ -57,7 +57,7 @@ namespace ib2
         PosAttProfiler();
 
         /** rosparamによるコンストラクタ */
-        explicit PosAttProfiler(const ros::NodeHandle& nh);
+        explicit PosAttProfiler(const rclcpp::NodeOptions& options);
 
         /** 値によるコンストラクタ */
         PosAttProfiler
@@ -90,7 +90,7 @@ namespace ib2
          * @retval true 設定成功
          * @retval false 設定失敗
          */
-        bool setMember(const ros::NodeHandle& nh);
+        bool setMember(const rclcpp::NodeOptions& options);
     
         /** 位置誘導プロファイルパラメータ設定
          * @param [in] p 設定パラメータ
@@ -118,7 +118,8 @@ namespace ib2
          */
         ib2_interfaces::msg::CtlProfile setProfile
         (const ib2_interfaces::msg::Navigation& nav, 
-         const ib2_interfaces::action::CtlCommand::Goal& goal, const CtlBody& b);
+         const std::shared_ptr<const ib2_interfaces::action::CtlCommand::Goal>& goal,
+         const CtlBody& b);
 
         /** 位置姿勢停止誘導プロファイル作成
          * @param [in] nav 航法値
