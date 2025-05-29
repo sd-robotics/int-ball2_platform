@@ -47,6 +47,10 @@ private:
     Ctl() = delete;
 
 public:
+    using CtlCommand = ib2_interfaces::action::CtlCommand;
+    using GoalHandleCtlCommand = rclcpp_action::ServerGoalHandle<CtlCommand>;
+
+
     /** コンストラクタ */
     explicit Ctl(const rclcpp::NodeOptions& options);
 
@@ -90,13 +94,14 @@ private:
      * @retval true 目標到達
      * @retval false 中断
      */
+    // bool guidance(int32_t goal_type, double tolp, double tola);
     bool guidance(int32_t goal_type, double tolp, double tola);
     
     /** ターゲットモードの処理
      * @param [in] goal 制御目標
      */
-    void target(const ib2_interfaces::action::CtlCommand::Goal& goal);
-    
+    void target();
+
     /** リリースモードの処理 */
     void release();
     
@@ -153,7 +158,7 @@ private:
      */
     bool reachGoalScan
     (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
-     const ib2_interfaces::action::CtlCommand::Feedback& fb, double tola);
+     const CtlCommand::Feedback& fb, double tola);
 
     /** 制御目標到達判定(DOCK)
      * @return 制御目標到達判定結果
@@ -165,7 +170,7 @@ private:
      * @retval true 妥当
      * @retval false 不正
      */
-    bool validCommand(const ib2_interfaces::action::CtlCommand::Goal& goal) const;
+    bool validCommand(const std::shared_ptr<const CtlCommand::Goal>& goal) const;
 
     /** 航法メッセージ妥当性確認
      * @param [in] nav 判定対象航法メッセージ
@@ -181,7 +186,7 @@ public:
     /** 制御目標アクション受信時の処理
      * @param [in] goal 制御目標値メッセージ
      */
-    void commandCallback(const ib2_interfaces::action::CtlCommand::Goal& goal);
+    void commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal);
 
     /** パラメータ更新サービス受信時の処理
      * @param [in] パラメータ更新サービスリクエスト
@@ -206,18 +211,16 @@ public:
     //----------------------------------------------------------------------
     // メンバ変数
 private:
-    /** ROS2のクロック */
-    rclcpp::Clock clock_;
-
     /** 制御目標アクションサーバ */
-    rclcpp_action::Server<ib2_interfaces::action::CtlCommand>::SharedPtr command_as_;
+    rclcpp_action::Server<CtlCommand>::SharedPtr command_as_;
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID & uuid,
-        std::shared_ptr<const ib2_interfaces::action::CtlCommand::Goal> goal);
+        std::shared_ptr<const CtlCommand::Goal> goal);
     rclcpp_action::CancelResponse handle_cancel(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle);
+        const std::shared_ptr<GoalHandleCtlCommand> goal_handle);
     void handle_accepted(
-        const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle);
+        const std::shared_ptr<GoalHandleCtlCommand> goal_handle);
+    std::shared_ptr<GoalHandleCtlCommand> goal_handle_;
 
     /** パラメータ更新サービスサーバ */
     rclcpp::Service<ib2_interfaces::srv::UpdateParameter>::SharedPtr update_ss_;
@@ -327,7 +330,7 @@ private:
 
 rclcpp_action::GoalResponse Ctl::handle_goal(
     const rclcpp_action::GoalUUID & uuid,
-    std::shared_ptr<const ib2_interfaces::action::CtlCommand::Goal> goal)
+    std::shared_ptr<const CtlCommand::Goal> goal)
 {
     RCLCPP_INFO(this->get_logger(), "Received goal request with target position: [%f, %f, %f]",
                 goal->target.pose.position.x,
@@ -338,18 +341,18 @@ rclcpp_action::GoalResponse Ctl::handle_goal(
 }
 
 rclcpp_action::CancelResponse Ctl::handle_cancel(
-    const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle)
+    const std::shared_ptr<GoalHandleCtlCommand> goal_handle)
 {
     RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void Ctl::handle_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ib2_interfaces::action::CtlCommand>> goal_handle)
+void Ctl::handle_accepted(const std::shared_ptr<GoalHandleCtlCommand> goal_handle)
 {
     using namespace std::placeholders;
     // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-    std::thread{std::bind(&Ctl::commandCallback, this, _1), goal_handle}.detach();
+    std::thread{std::bind(&Ctl::commandCallback, this, std::placeholders::_1), goal_handle}.detach();
 }
 
 
