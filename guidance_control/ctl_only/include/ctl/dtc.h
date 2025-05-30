@@ -25,11 +25,11 @@ public:
     enum class DETECT : unsigned int
     {
         NONE,            ///< 検知なし
-        DOCKING,        ///< ドッキング
-        DISTURBED,        ///< 外乱発生（衝突/クルーキャプチャ）
-        COLLISION,        ///< 衝突
+        DOCKING,         ///< ドッキング
+        DISTURBED,       ///< 外乱発生（衝突/クルーキャプチャ）
+        COLLISION,       ///< 衝突
         CREW_CAPTURE,    ///< クルーキャプチャー
-        CREW_RELEASE    ///< クルーリリース
+        CREW_RELEASE     ///< クルーリリース
     };
 
     //----------------------------------------------------------------------
