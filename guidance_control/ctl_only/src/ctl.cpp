@@ -52,7 +52,7 @@ Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
     setMember();
 
-    // TODO: Action server
+    // Action server
     command_as_ = rclcpp_action::create_server<ib2_interfaces::action::CtlCommand>(
         this,
         COMMAND_ACTION,
@@ -69,6 +69,8 @@ Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     marker_sc_ = this->create_client<ib2_interfaces::srv::MarkerCorrection>(
         "/sensor_fusion/marker_correction");
     
+    // TODO: configure QoS
+
     // Subscribers
     navinfo_sub_ = this->create_subscription<ib2_interfaces::msg::Navigation>(
         TOPIC_NAV_POSE, 5, std::bind(&Ctl::navinfoCallback, this, std::placeholders::_1));
