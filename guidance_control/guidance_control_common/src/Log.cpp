@@ -241,14 +241,15 @@ public:
                 ss << std::setw(5) << std::right << lineno << " | ";
                 ss << function << " : " << message;
                 
+                static rclcpp::Logger logger = rclcpp::get_logger("guidance_control_common"); //TODO: logger name
                 if (level == LEVEL::DEBUG_LOG)
-                    ROS_DEBUG("%s", ss.str().c_str());
+                    RCLCPP_DEBUG(logger, "%s", ss.str().c_str());
                 else if(level == LEVEL::INFO_LOG)
-                    ROS_INFO("%s", ss.str().c_str());
+                    RCLCPP_INFO(logger, "%s", ss.str().c_str());
                 else if(level == LEVEL::WARN_LOG)
-                    ROS_WARN("%s", ss.str().c_str());
+                    RCLCPP_WARN(logger, "%s", ss.str().c_str());
                 else
-                    ROS_ERROR("%s", ss.str().c_str());
+                    RCLCPP_ERROR(logger, "%s", ss.str().c_str());
                 
 //                if (lines_ >= maxlines_)
 //                    updateLogFile();
