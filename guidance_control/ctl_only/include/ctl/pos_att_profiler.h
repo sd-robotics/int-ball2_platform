@@ -86,7 +86,7 @@ namespace ib2
         // 操作(Setter)
     public:
         /** メンバの設定
-         * @param [in] nh ノードハンドラ
+         * @param [in] options ノードオプション
          * @retval true 設定成功
          * @retval false 設定失敗
          */
