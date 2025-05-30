@@ -112,5 +112,4 @@ geometry_msgs::msg::WrenchStamped ib2::PosAttController::wrenchCommand
     return cmd;
 }
 
-
 // End Of File -----------------------------------------------------------------

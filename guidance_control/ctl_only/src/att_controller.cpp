@@ -109,4 +109,5 @@ Eigen::Vector3d ib2::AttController::torqueCommand
 
     return troque;
 }
+
 // End Of File -----------------------------------------------------------------
