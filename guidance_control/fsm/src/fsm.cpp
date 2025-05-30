@@ -26,7 +26,7 @@ Fsm::Fsm(const rclcpp::NodeOptions& options) :
     rclcpp::Node("fsm", options)
 {
     // 初期化　
-    ib2::ThrustAllocator thr(this->get_node_options());
+    ib2::ThrustAllocator thr(options);
     setMember(thr);
 
     // TODO: configure QoS
