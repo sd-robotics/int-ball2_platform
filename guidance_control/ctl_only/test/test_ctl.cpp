@@ -1,8 +1,8 @@
 
-#include "Log.h"
+#include "guidance_control_common/Log.h"
 
 #include <gtest/gtest.h>
-#include <ros/ros.h>
+// #include <rclcpp/rclcpp.hpp>
 
 #include <cmath>
 
@@ -18,8 +18,9 @@ int main(int argc, char **argv)
 	using namespace ib2_mss;
 	Log::configure("log/test_ctl.log", "DEBUG");
 	testing::InitGoogleTest(&argc, argv);
-	// ros::init(argc, argv, "hello-test");
-	// ros::NodeHandle nh;
+	// rclcpp::init(argc, argv);
+	// rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("test_ctl_node");
+	// rclcpp::spin(node);
 	return RUN_ALL_TESTS();
 }
 

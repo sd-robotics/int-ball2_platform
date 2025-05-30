@@ -1,6 +1,6 @@
 
-#include "thrust_allocator.h"
-#include "thrust_allocator.cpp"
+#include "fsm/thrust_allocator.h"
+#include "fms/thrust_allocator.cpp"
 
 #include <gtest/gtest.h>
 
@@ -97,12 +97,6 @@ TEST(ThrustAllocatorTest, allocate)
 	EXPECT_DOUBLE_EQ(0., fdif(0.8));
 	EXPECT_DOUBLE_EQ(0., fdif(0.9));
 	EXPECT_DOUBLE_EQ(0., fdif(1.0));
-
-
-
-
-
 }
-
 
 // End Of File -----------------------------------------------------------------
