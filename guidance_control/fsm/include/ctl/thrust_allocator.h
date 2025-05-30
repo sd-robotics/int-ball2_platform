@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <Eigen/Core>
 
 namespace ib2
@@ -11,7 +11,7 @@ namespace ib2
      *
      * 推力配分行列を用いて、並進力・トルクを各スラスタの推力に配分する
      */
-    class ThrustAllocator final
+    class ThrustAllocator final : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
@@ -19,10 +19,10 @@ namespace ib2
         /** デフォルトコンストラクタ */
         ThrustAllocator();
         
-        /** rosparamによるコンストラクタ
-         * @param [in] nh ノードハンドラ
+        /** rosparamによるコンストラクタ.
+         * @param [in] options ノードオプション
          */
-        explicit ThrustAllocator(const ros::NodeHandle& nh);
+        explicit ThrustAllocator(const rclcpp::NodeOptions& options);
 
         /** 値によるコンストラクタ.
          * @param [in] Fmax 各ファンの最大推力

@@ -116,6 +116,7 @@ namespace
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
 ib2::ThrustAllocator::ThrustAllocator() :
+rclcpp::Node("fan"),
 Fmax_(0), 
 Wp_(Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL)), 
 Wm_(Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL))
@@ -124,17 +125,21 @@ Wm_(Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL))
 
 //------------------------------------------------------------------------------
 // rosparamによるコンストラクタ
-ib2::ThrustAllocator::ThrustAllocator(const ros::NodeHandle& nh)
+ib2::ThrustAllocator::ThrustAllocator(const rclcpp::NodeOptions& options) :
+// rclcpp::Node("thrust_allocator", options)
+rclcpp::Node("fan", options)
 {
     using namespace ib2_mss;
     static const RangeCheckerD F_MAX_RANGE
     (RangeCheckerD::TYPE::GT_LE, 0., 0.1, true);
 
-    nh.getParam("/fan/Fmax", Fmax_);
+    this->declare_parameter("Fmax", 0.1);
+    Fmax_ = this->get_parameter("Fmax").as_double();
     F_MAX_RANGE.valid(Fmax_, "/fan/Fmax");
 
     int nfan(0);
-    nh.getParam("/fan/number", nfan);
+    this->declare_parameter("number", 0);
+    nfan = this->get_parameter("number").as_int();
     if (nfan != 8)
         throw std::domain_error("/fan/number must be 8");
     nfan_ = nfan;
@@ -153,12 +158,19 @@ ib2::ThrustAllocator::ThrustAllocator(const ros::NodeHandle& nh)
         std::string str_ty = str_wp + std::to_string(i + 1) + "/Ty";
         std::string str_tz = str_wp + std::to_string(i + 1) + "/Tz";
 
-        nh.getParam(str_fx, Wp_(i,0));
-        nh.getParam(str_fy, Wp_(i,1));
-        nh.getParam(str_fz, Wp_(i,2));
-        nh.getParam(str_tx, Wp_(i,3));
-        nh.getParam(str_ty, Wp_(i,4));
-        nh.getParam(str_tz, Wp_(i,5));
+        this->declare_parameter(str_fx, 0.0);
+        this->declare_parameter(str_fy, 0.0);
+        this->declare_parameter(str_fz, 0.0);
+        this->declare_parameter(str_tx, 0.0);
+        this->declare_parameter(str_ty, 0.0);
+        this->declare_parameter(str_tz, 0.0);
+
+        Wp_(i,0) = this->get_parameter(str_fx).as_double();
+        Wp_(i,1) = this->get_parameter(str_fx).as_double();
+        Wp_(i,2) = this->get_parameter(str_fx).as_double();
+        Wp_(i,3) = this->get_parameter(str_fx).as_double();
+        Wp_(i,4) = this->get_parameter(str_fx).as_double();
+        Wp_(i,5) = this->get_parameter(str_fx).as_double();
     }
 
     for(int i = 0; i < 8; i++)
@@ -170,20 +182,27 @@ ib2::ThrustAllocator::ThrustAllocator(const ros::NodeHandle& nh)
         std::string str_ty = str_wm + std::to_string(i + 1) + "/Ty";
         std::string str_tz = str_wm + std::to_string(i + 1) + "/Tz";
 
-        nh.getParam(str_fx, Wm_(i,0));
-        nh.getParam(str_fy, Wm_(i,1));
-        nh.getParam(str_fz, Wm_(i,2));
-        nh.getParam(str_tx, Wm_(i,3));
-        nh.getParam(str_ty, Wm_(i,4));
-        nh.getParam(str_tz, Wm_(i,5));
+        this->declare_parameter(str_fx, 0.0);
+        this->declare_parameter(str_fy, 0.0);
+        this->declare_parameter(str_fz, 0.0);
+        this->declare_parameter(str_tx, 0.0);
+        this->declare_parameter(str_ty, 0.0);
+        this->declare_parameter(str_tz, 0.0);
+
+        Wm_(i,0) = this->get_parameter(str_fx).as_double();
+        Wm_(i,1) = this->get_parameter(str_fy).as_double();
+        Wm_(i,2) = this->get_parameter(str_fz).as_double();
+        Wm_(i,3) = this->get_parameter(str_tx).as_double();
+        Wm_(i,4) = this->get_parameter(str_ty).as_double();
+        Wm_(i,5) = this->get_parameter(str_tz).as_double();
     }
     
     RangeCheckerD::notNegative(Wp_.minCoeff(), true, "Wp");
     RangeCheckerD::notNegative(Wm_.minCoeff(), true, "Wm");
 
-    ROS_INFO("******** Set Parameters in thrust_allocator.cpp");
-    ROS_INFO("/fan/Fmax      : %f", Fmax_);
-    ROS_INFO("/fan/number    : %d", nfan);
+    RCLCPP_INFO(this->get_logger(), "******** Set Parameters in thrust_allocator.cpp");
+    RCLCPP_INFO(this->get_logger(), "/fan/Fmax      : %f", Fmax_);
+    RCLCPP_INFO(this->get_logger(), "/fan/number    : %d", nfan);
 
     for(int i = 0; i < 8; i++)
     {
@@ -194,12 +213,12 @@ ib2::ThrustAllocator::ThrustAllocator(const ros::NodeHandle& nh)
         std::string str_ty = str_wp + std::to_string(i + 1) + "/Ty";
         std::string str_tz = str_wp + std::to_string(i + 1) + "/Tz";
 
-        ROS_INFO("%s     : %f", str_fx.c_str(), Wp_(i,0));
-        ROS_INFO("%s     : %f", str_fy.c_str(), Wp_(i,1));
-        ROS_INFO("%s     : %f", str_fz.c_str(), Wp_(i,2));
-        ROS_INFO("%s     : %f", str_tx.c_str(), Wp_(i,3));
-        ROS_INFO("%s     : %f", str_ty.c_str(), Wp_(i,4));
-        ROS_INFO("%s     : %f", str_tz.c_str(), Wp_(i,5));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fx.c_str(), Wp_(i,0));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fy.c_str(), Wp_(i,1));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fz.c_str(), Wp_(i,2));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_tx.c_str(), Wp_(i,3));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_ty.c_str(), Wp_(i,4));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_tz.c_str(), Wp_(i,5));
     }
 
     for(int i = 0; i < 8; i++)
@@ -211,12 +230,12 @@ ib2::ThrustAllocator::ThrustAllocator(const ros::NodeHandle& nh)
         std::string str_ty = str_wm + std::to_string(i + 1) + "/Ty";
         std::string str_tz = str_wm + std::to_string(i + 1) + "/Tz";
 
-        ROS_INFO("%s     : %f", str_fx.c_str(), Wm_(i,0));
-        ROS_INFO("%s     : %f", str_fy.c_str(), Wm_(i,1));
-        ROS_INFO("%s     : %f", str_fz.c_str(), Wm_(i,2));
-        ROS_INFO("%s     : %f", str_tx.c_str(), Wm_(i,3));
-        ROS_INFO("%s     : %f", str_ty.c_str(), Wm_(i,4));
-        ROS_INFO("%s     : %f", str_tz.c_str(), Wm_(i,5));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fx.c_str(), Wm_(i,0));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fy.c_str(), Wm_(i,1));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fz.c_str(), Wm_(i,2));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_tx.c_str(), Wm_(i,3));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_ty.c_str(), Wm_(i,4));
+        RCLCPP_INFO(this->get_logger(), "%s     : %f", str_tz.c_str(), Wm_(i,5));
     }
 }
 
@@ -224,6 +243,7 @@ ib2::ThrustAllocator::ThrustAllocator(const ros::NodeHandle& nh)
 // 値によるコンストラクタ
 ib2::ThrustAllocator::ThrustAllocator
 (double Fmax, const Eigen::MatrixXd& Wp, const Eigen::MatrixXd& Wm) :
+rclcpp::Node("fan"),
 Fmax_(Fmax), Wp_(Wp), Wm_(Wm)
 {
     checkW(Wp, Wm);
