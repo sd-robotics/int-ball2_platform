@@ -29,6 +29,8 @@ Fsm::Fsm(const rclcpp::NodeOptions& options) :
     ib2::ThrustAllocator thr(this->get_node_options());
     setMember(thr);
 
+    // TODO: configure QoS
+
     // Subscriber
     wrench_sub_ = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
         TOPIC_CTL_WRENCH, 5,
