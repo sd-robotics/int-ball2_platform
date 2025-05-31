@@ -1,5 +1,5 @@
-#include "fsm/thrust_allocator.h"
-#include "fsm/thrust_allocator.cpp"
+#include "ib2_fsm/thrust_allocator.h"
+#include "ib2_fsm/thrust_allocator.cpp"
 
 #include <gtest/gtest.h>
 

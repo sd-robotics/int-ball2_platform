@@ -1,4 +1,3 @@
-
 #pragma once
 
 namespace ib2_mss

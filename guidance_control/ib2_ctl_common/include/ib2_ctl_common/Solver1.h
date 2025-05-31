@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "Function1.h"
