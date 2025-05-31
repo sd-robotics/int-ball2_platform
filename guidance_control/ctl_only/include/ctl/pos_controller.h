@@ -3,7 +3,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Core>
-#include "ctl/ctl_elements.h"
+#include "ib2_ctl/ctl_elements.h"
 
 namespace ib2
 {

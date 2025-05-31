@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "ib2_interfaces/msg/ctl_status.hpp"

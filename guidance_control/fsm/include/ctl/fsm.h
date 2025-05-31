@@ -5,7 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <example_interfaces/msg/float64_multi_array.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
-#include "ctl/thrust_allocator.h"
+#include "ib2_ctl/thrust_allocator.h"
 
 /**
 * @brief ファン選択ノードクラス

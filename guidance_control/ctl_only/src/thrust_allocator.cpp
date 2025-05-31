@@ -1,5 +1,5 @@
 
-#include "ctl/thrust_allocator.h"
+#include "ib2_ctl/thrust_allocator.h"
 
 #include "guidance_control_common/Function1.h"
 #include "guidance_control_common/Solver1.h"

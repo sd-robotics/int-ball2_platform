@@ -1,5 +1,5 @@
 
-#include "ctl/att_controller.h"
+#include "ib2_ctl/att_controller.h"
 #include "guidance_control_common/RangeChecker.h"
 
 //------------------------------------------------------------------------------

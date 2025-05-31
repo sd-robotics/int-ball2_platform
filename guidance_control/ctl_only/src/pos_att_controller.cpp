@@ -1,6 +1,6 @@
 
-#include "ctl/pos_att_controller.h"
-#include "ctl/ctl_body.h"
+#include "ib2_ctl/pos_att_controller.h"
+#include "ib2_ctl/ctl_body.h"
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ

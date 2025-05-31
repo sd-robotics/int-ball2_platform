@@ -1,6 +1,6 @@
 
-#include "ctl/pos_att_profiler.h"
-#include "ctl/ctl_body.h"
+#include "ib2_ctl/pos_att_profiler.h"
+#include "ib2_ctl/ctl_body.h"
 #include "ib2_interfaces/msg/navigation.hpp"
 #include "ib2_interfaces/msg/ctl_status_type.hpp"
 #include "guidance_control_common/Constants.h"

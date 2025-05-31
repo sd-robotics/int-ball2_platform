@@ -5,9 +5,9 @@
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include "ib2_interfaces/msg/navigation.hpp"
-#include "ctl/pos_controller.h"
-#include "ctl/att_controller.h"
-#include "ctl/ctl_elements.h"
+#include "ib2_ctl/pos_controller.h"
+#include "ib2_ctl/att_controller.h"
+#include "ib2_ctl/ctl_elements.h"
 
 namespace ib2
 {

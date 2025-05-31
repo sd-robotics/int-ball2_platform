@@ -8,10 +8,10 @@
 #include "ib2_interfaces/action/ctl_command.hpp"
 #include "ib2_interfaces/msg/navigation.hpp"
 #include "ib2_interfaces/msg/ctl_profile.hpp"
-#include "ctl/ctl_elements.h"
-#include "ctl/pos_profiler.h"
-#include "ctl/att_profiler.h"
-#include "ctl/thrust_allocator.h"
+#include "ib2_ctl/ctl_elements.h"
+#include "ib2_ctl/pos_profiler.h"
+#include "ib2_ctl/att_profiler.h"
+#include "ib2_ctl/thrust_allocator.h"
 
 #include <tuple>
 
