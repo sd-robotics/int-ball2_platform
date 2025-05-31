@@ -48,9 +48,7 @@ ament_target_dependencies(${PROJECT_NAME}
   "builtin_interfaces"
 )
 
-## Declare a C++ executable
-## With catkin_make all packages are built within a single CMake context
-## The recommended prefix ensures that target names across packages don't collide
+## TODO: Use component interface for the library
 add_executable(${PROJECT_NAME}
   src/att_controller.cpp
   src/att_profiler.cpp
