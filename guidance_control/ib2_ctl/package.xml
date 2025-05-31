@@ -15,7 +15,7 @@
   <depend>example_interfaces</depend>
   <depend>geometry_msgs</depend>
   <depend>ib2_interfaces</depend>
-  <depend>guidance_control_common</depend>
+  <depend>ib2_ctl_common</depend>
   <depend>eigen</depend>
 
   <test_depend>ament_lint_auto</test_depend>

@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   actionlib
   roscpp
-  guidance_control_common
+  ib2_ctl_common
   ib2_msgs
 )
 
@@ -112,7 +112,7 @@ catkin_package(
   INCLUDE_DIRS include
   # LIBRARIES ctl
   # CATKIN_DEPENDS actionlib actionlib_msgs geometry_msgs roscpp std_msgs ib2_msgs
-  CATKIN_DEPENDS guidance_control_common ib2_msgs
+  CATKIN_DEPENDS ib2_ctl_common ib2_msgs
   # DEPENDS Boost # system_lib
 )
 
@@ -127,9 +127,9 @@ include_directories(
  ${catkin_INCLUDE_DIRS}
  ${Boost_INCLUDE_DIR}
  ${EIGEN3_INCLUDE_DIR}
-# ${PROJECT_SOURCE_DIR}/../guidance_control_common
+# ${PROJECT_SOURCE_DIR}/../ib2_ctl_common
 )
-#link_directories(${PROJECT_BINARY_DIR}/../guidance_control_common)
+#link_directories(${PROJECT_BINARY_DIR}/../ib2_ctl_common)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -166,7 +166,7 @@ add_executable(${PROJECT_NAME}
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
-#  guidance_control_common
+#  ib2_ctl_common
 )
 
 #############
@@ -213,7 +213,7 @@ target_link_libraries(${PROJECT_NAME}
 #catkin_add_gtest(${PROJECT_NAME}-test ${TESTSRCS})
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_ctl.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME} guidance_control_common ${catkin_LIBRARIES})
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME} ib2_ctl_common ${catkin_LIBRARIES})
 # endif()
 #aaaa
 #aaaa target_link_libraries(ctl ${catkin_LIBRARIES})
