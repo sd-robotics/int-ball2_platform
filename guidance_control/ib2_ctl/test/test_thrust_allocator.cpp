@@ -1,6 +1,5 @@
-
-#include "fsm/thrust_allocator.h"
-#include "fms/thrust_allocator.cpp"
+#include "ib2_ctl/thrust_allocator.h" // TODO: check ctl/fsm header
+#include "ib2_ctl/thrust_allocator.cpp"
 
 #include <gtest/gtest.h>
 
