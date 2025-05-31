@@ -1,10 +1,10 @@
 
 #include "ib2_fsm/thrust_allocator.h"
 
-#include "guidance_control_common/Function1.h"
-#include "guidance_control_common/Solver1.h"
-#include "guidance_control_common/Log.h"
-#include "guidance_control_common/RangeChecker.h"
+#include "ib2_ctl_common/Function1.h"
+#include "ib2_ctl_common/Solver1.h"
+#include "ib2_ctl_common/Log.h"
+#include "ib2_ctl_common/RangeChecker.h"
 
 #include <vector>
 #include <stdexcept>

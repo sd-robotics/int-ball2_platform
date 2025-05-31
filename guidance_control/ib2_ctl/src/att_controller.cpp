@@ -1,6 +1,6 @@
 
 #include "ib2_ctl/att_controller.h"
-#include "guidance_control_common/RangeChecker.h"
+#include "ib2_ctl_common/RangeChecker.h"
 
 //------------------------------------------------------------------------------
 // ファイルスコープ

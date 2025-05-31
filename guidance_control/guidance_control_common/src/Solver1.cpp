@@ -1,6 +1,6 @@
 
-#include "guidance_control_common/Solver1.h"
-#include "guidance_control_common/Log.h"
+#include "ib2_ctl_common/Solver1.h"
+#include "ib2_ctl_common/Log.h"
 
 #include <string>
 #include <sstream>

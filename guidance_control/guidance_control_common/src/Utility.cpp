@@ -1,9 +1,9 @@
 
-#include "guidance_control_common/Utility.h"
-#include "guidance_control_common/IntOverflow.h"
-#include "guidance_control_common/RangeChecker.h"
-#include "guidance_control_common/Constants.h"
-#include "guidance_control_common/Log.h"
+#include "ib2_ctl_common/Utility.h"
+#include "ib2_ctl_common/IntOverflow.h"
+#include "ib2_ctl_common/RangeChecker.h"
+#include "ib2_ctl_common/Constants.h"
+#include "ib2_ctl_common/Log.h"
 
 #include <Eigen/Geometry>
 

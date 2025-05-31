@@ -1,6 +1,6 @@
 
-#include "guidance_control_common/FileWriter.h"
-#include "guidance_control_common/Log.h"
+#include "ib2_ctl_common/FileWriter.h"
+#include "ib2_ctl_common/Log.h"
 
 #include <sstream>
 #include <fstream>

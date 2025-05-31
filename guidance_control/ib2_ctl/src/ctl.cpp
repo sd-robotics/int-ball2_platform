@@ -9,10 +9,10 @@
 #include "ib2_ctl/pos_att_profiler.h"
 #include "ib2_interfaces/srv/marker_correction.hpp"
 
-#include "guidance_control_common/Log.h"
-#include "guidance_control_common/Constants.h"
-#include "guidance_control_common/Utility.h"
-#include "guidance_control_common/RangeChecker.h"
+#include "ib2_ctl_common/Log.h"
+#include "ib2_ctl_common/Constants.h"
+#include "ib2_ctl_common/Utility.h"
+#include "ib2_ctl_common/RangeChecker.h"
 
 #include <Eigen/Core>
 

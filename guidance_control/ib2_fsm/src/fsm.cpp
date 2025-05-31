@@ -1,7 +1,7 @@
 
 
 #include "ib2_fsm/fsm.h"
-#include "guidance_control_common/RangeChecker.h"
+#include "ib2_ctl_common/RangeChecker.h"
 
 #include <Eigen/Core>
 

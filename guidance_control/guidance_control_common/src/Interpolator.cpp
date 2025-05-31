@@ -1,8 +1,8 @@
 
-#include "guidance_control_common/Interpolator.h"
-#include "guidance_control_common/RangeChecker.h"
-#include "guidance_control_common/Utility.h"
-#include "guidance_control_common/Log.h"
+#include "ib2_ctl_common/Interpolator.h"
+#include "ib2_ctl_common/RangeChecker.h"
+#include "ib2_ctl_common/Utility.h"
+#include "ib2_ctl_common/Log.h"
 
 #include <algorithm>
 #include <stdexcept>

@@ -3,9 +3,9 @@
 #include "ib2_ctl/ctl_body.h"
 #include "ib2_interfaces/msg/navigation.hpp"
 #include "ib2_interfaces/msg/ctl_status_type.hpp"
-#include "guidance_control_common/Constants.h"
-#include "guidance_control_common/Utility.h"
-#include "guidance_control_common/RangeChecker.h"
+#include "ib2_ctl_common/Constants.h"
+#include "ib2_ctl_common/Utility.h"
+#include "ib2_ctl_common/RangeChecker.h"
 
 #include <sstream>
 

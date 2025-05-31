@@ -1,6 +1,6 @@
 
-#include "guidance_control_common/IntOverflow.h"
-#include "guidance_control_common/Log.h"
+#include "ib2_ctl_common/IntOverflow.h"
+#include "ib2_ctl_common/Log.h"
 
 #include <sstream>
 #include <stdexcept>

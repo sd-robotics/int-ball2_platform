@@ -1,8 +1,8 @@
 
 #include "ib2_ctl/att_profiler.h"
 
-#include "guidance_control_common/Constants.h"
-#include "guidance_control_common/RangeChecker.h"
+#include "ib2_ctl_common/Constants.h"
+#include "ib2_ctl_common/RangeChecker.h"
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ

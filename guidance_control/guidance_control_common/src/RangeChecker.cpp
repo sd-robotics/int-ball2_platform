@@ -1,7 +1,7 @@
 
-#include "guidance_control_common/RangeChecker.h"
-#include "guidance_control_common/Mjd.h"
-#include "guidance_control_common/Log.h"
+#include "ib2_ctl_common/RangeChecker.h"
+#include "ib2_ctl_common/Mjd.h"
+#include "ib2_ctl_common/Log.h"
 
 #include <stdexcept>
 #include <sstream>

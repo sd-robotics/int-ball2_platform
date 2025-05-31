@@ -1,6 +1,6 @@
 
-#include "guidance_control_common/Log.h"
-#include "guidance_control_common/FileWriter.h"
+#include "ib2_ctl_common/Log.h"
+#include "ib2_ctl_common/FileWriter.h"
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -241,7 +241,7 @@ public:
                 ss << std::setw(5) << std::right << lineno << " | ";
                 ss << function << " : " << message;
                 
-                static rclcpp::Logger logger = rclcpp::get_logger("guidance_control_common"); //TODO: logger name
+                static rclcpp::Logger logger = rclcpp::get_logger("ib2_ctl_common"); //TODO: logger name
                 if (level == LEVEL::DEBUG_LOG)
                     RCLCPP_DEBUG(logger, "%s", ss.str().c_str());
                 else if(level == LEVEL::INFO_LOG)

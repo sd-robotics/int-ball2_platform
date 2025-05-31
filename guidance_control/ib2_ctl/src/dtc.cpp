@@ -1,6 +1,6 @@
 
 #include "ib2_ctl/dtc.h"
-#include "guidance_control_common/RangeChecker.h"
+#include "ib2_ctl_common/RangeChecker.h"
 
 #include <cassert>
 //------------------------------------------------------------------------------

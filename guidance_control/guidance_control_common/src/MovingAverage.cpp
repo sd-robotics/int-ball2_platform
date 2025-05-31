@@ -1,5 +1,5 @@
 
-#include "guidance_control_common/MovingAverage.h"
+#include "ib2_ctl_common/MovingAverage.h"
 
 #include <limits>
 #include <cmath>

@@ -11,7 +11,7 @@
 #include "ib2_interfaces/msg/navigation.hpp"
 #include "ib2_interfaces/msg/ctl_status.hpp"
 
-#include "guidance_control_common/MovingAverage.h"
+#include "ib2_ctl_common/MovingAverage.h"
 
 /**
 * @brief 検知クラス
