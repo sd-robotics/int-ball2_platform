@@ -2,6 +2,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 //fsm.h"    // Modification for platform packages
 #include "ib2_ctl/dtc.h"
 
@@ -17,6 +18,7 @@
 #include "ib2_interfaces/msg/ctl_profile.hpp"
 #include "ib2_interfaces/action/ctl_command.hpp"
 #include "ib2_interfaces/srv/update_parameter.hpp"
+#include "ib2_interfaces/srv/marker_correction.hpp"
 
 #include <memory>
 
@@ -344,21 +346,21 @@ rclcpp_action::GoalResponse ib2::Ctl::handle_goal(
 }
 
 rclcpp_action::CancelResponse ib2::Ctl::handle_cancel(
-    const std::shared_ptr<GoalHandleCtlCommand> goal_handle)
+    const std::shared_ptr<ib2::Ctl::GoalHandleCtlCommand> goal_handle)
 {
     RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
     (void)goal_handle;
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void Ctl::handle_accepted(const std::shared_ptr<GoalHandleCtlCommand> goal_handle)
+void ib2::Ctl::handle_accepted(const std::shared_ptr<ib2::Ctl::GoalHandleCtlCommand> goal_handle)
 {
     using namespace std::placeholders;
     // this needs to return quickly to avoid blocking the executor, so spin up a new thread
     std::thread{std::bind(&ib2::Ctl::commandCallback, this, std::placeholders::_1), goal_handle}.detach();
 }
 
-
+// Register the node with the rclcpp components system
 RCLCPP_COMPONENTS_REGISTER_NODE(ib2::Ctl)
 
 // End Of File -----------------------------------------------------------------
