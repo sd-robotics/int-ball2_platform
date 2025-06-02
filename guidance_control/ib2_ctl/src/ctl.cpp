@@ -227,23 +227,23 @@ bool ib2::Ctl::setMember()
 
         // Log parameters
         RCLCPP_INFO(this->get_logger(), "******** Set Parameters in ctl.cpp");
-        RCLCPP_INFO(this->get_logger(), "%s   : %u.%u", ROSPARAM_INTERVAL_STATUS.c_str()   , interval_status_.seconds(), interval_status_.nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "%s   : %u.%u", ROSPARAM_INTERVAL_FEEDBACK.c_str() , interval_feedback_.seconds(), interval_feedback_.nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "%s   : %u.%u", ROSPARAM_DURATION_GOAL.c_str()     , duration_goal_.seconds(), duration_goal_.nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_TOLERANCE_POS.c_str()        , tolerance_pos_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_TOLERANCE_ATT.c_str()        , tolerance_att_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_TOLERANCE_POS_STOP.c_str()   , tolerance_pos_stop_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_TOLERANCE_ATT_STOP.c_str()   , tolerance_att_stop_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %u.%u", ROSPARAM_WAIT_CANCEL.c_str()       , waitCancel_.seconds(), waitCancel_.nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "%s   : %u.%u", ROSPARAM_WAIT_RELEASE.c_str()      , waitRelease_.seconds(), waitRelease_.nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "%s   : %u.%u", ROSPARAM_WAIT_CALIBRATION.c_str()  , waitCalibration_.seconds(), waitCalibration_.nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "%s   : %u.%u", ROSPARAM_WAIT_DOCKING.c_str()      , waitDocking_.seconds(), waitDocking_.nanoseconds());
-        RCLCPP_INFO(this->get_logger(), "%s   : %zd"  , ROSPARAM_NAV_COUNTER.c_str()         , nav_counter_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_NAV_DR.c_str()               , nav_dr_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_NAV_DV.c_str()               , nav_dv_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_NAV_DA.c_str()               , nav_da_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_NAV_DQ.c_str()               , nav_dq_);
-        RCLCPP_INFO(this->get_logger(), "%s   : %f"   , ROSPARAM_NAV_DW.c_str()               , nav_dw_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_INTERVAL_STATUS.c_str()      , RCL_NS_TO_S(interval_status_.nanoseconds())  , interval_status_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(interval_status_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_INTERVAL_FEEDBACK.c_str()    , RCL_NS_TO_S(interval_feedback_.nanoseconds()), interval_feedback_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(interval_feedback_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_DURATION_GOAL.c_str()        , RCL_NS_TO_S(duration_goal_.nanoseconds())    , duration_goal_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(duration_goal_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_POS.c_str()        , tolerance_pos_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_ATT.c_str()        , tolerance_att_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_POS_STOP.c_str()   , tolerance_pos_stop_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_ATT_STOP.c_str()   , tolerance_att_stop_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_CANCEL.c_str()          , RCL_NS_TO_S(waitCancel_.nanoseconds())     , waitCancel_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitCancel_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_RELEASE.c_str()         , RCL_NS_TO_S(waitRelease_.nanoseconds())    , waitRelease_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitRelease_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_CALIBRATION.c_str()     , RCL_NS_TO_S(waitCalibration_.nanoseconds()), waitCalibration_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitCalibration_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_DOCKING.c_str()         , RCL_NS_TO_S(waitDocking_.nanoseconds())    , waitDocking_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitDocking_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %zd"        , ROSPARAM_NAV_COUNTER.c_str()          , nav_counter_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DR.c_str()               , nav_dr_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DV.c_str()               , nav_dv_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DA.c_str()               , nav_da_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DQ.c_str()               , nav_dq_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DW.c_str()               , nav_dw_);
 
         // if (timer_.isValid())
         //     timer_.setPeriod(interval_status_);
@@ -440,7 +440,7 @@ void ib2::Ctl::docking(bool correction)
             break;
         else if (status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_AIA_AIP)
         {
-            auto request = std::make_shared<ib2_interfaces::srv::MarkerCorrection>();
+            auto request = std::make_shared<ib2_interfaces::srv::MarkerCorrection::Request>();
             // TODO: wait for service to be available
             auto result = marker_sc_->async_send_request(request);
 
@@ -453,7 +453,7 @@ void ib2::Ctl::docking(bool correction)
                 break;
             }
 
-            if (!result.get()->response.status)
+            if (!result.get()->status)
             {
                 RCLCPP_ERROR(this->get_logger(), "Marker correction failed");
                 abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
@@ -772,8 +772,9 @@ bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool 
                             last_nav_stamp_.pose.header.stamp.nanosec);
             if (tc >= tn)
             {
-                RCLCPP_INFO(this->get_logger(), "Invalid Navigation Stamp : current %u.%u, last %u.%u",
-                        tn.seconds(), tn.nanoseconds(), tc.seconds(), tc.nanoseconds());
+                RCLCPP_INFO(this->get_logger(), "Invalid Navigation Stamp : current %lld.%09lld, last %lld.%09lld",
+                        RCL_NS_TO_S(tn.nanoseconds()), tn.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(tn.nanoseconds())),
+                        RCL_NS_TO_S(tc.nanoseconds()), tc.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(tc.nanoseconds())));
                 return false;
             }
             double dt((tn - tc).seconds());
@@ -1052,16 +1053,3 @@ void ib2::Ctl::timerCallback()
         RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::timerCallback");
     }
 }
-
-//------------------------------------------------------------------------------
-// メイン関数
-int main(int argc, char **argv)
-{
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<Ctl>();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
-}
-
-// End Of File -----------------------------------------------------------------
