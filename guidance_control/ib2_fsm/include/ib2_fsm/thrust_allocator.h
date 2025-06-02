@@ -14,10 +14,11 @@ namespace ib2
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
-    public:
+    private:
         /** デフォルトコンストラクタ */
-        ThrustAllocator();
-        
+        ThrustAllocator() = delete;
+
+    public:
         /** rosparamによるコンストラクタ.
          * @param [in] options ノードオプション
          */
@@ -38,17 +39,17 @@ namespace ib2
         // コピー/ムーブ
     public:
         /** コピーコンストラクタ. */
-        ThrustAllocator(const ThrustAllocator&);
+        ThrustAllocator(const ThrustAllocator&) = delete;
         
         /** コピー代入演算子. */
-        ThrustAllocator& operator=(const ThrustAllocator&);
+        ThrustAllocator& operator=(const ThrustAllocator&) = delete;
         
         /** ムーブコンストラクタ. */
-        ThrustAllocator(ThrustAllocator&&);
+        ThrustAllocator(ThrustAllocator&&) = delete;
         
         /** ムーブ代入演算子. */
-        ThrustAllocator& operator=(ThrustAllocator&&);
-        
+        ThrustAllocator& operator=(ThrustAllocator&&) = delete;
+
         //----------------------------------------------------------------------
         // 操作(Setter)
     public:

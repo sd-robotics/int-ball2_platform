@@ -115,13 +115,13 @@ namespace
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
-ib2::ThrustAllocator::ThrustAllocator() :
-rclcpp::Node("fan"),
-Fmax_(0), 
-Wp_(Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL)), 
-Wm_(Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL))
-{
-}
+// ib2::ThrustAllocator::ThrustAllocator() :
+// rclcpp::Node("fan"),
+// Fmax_(0), 
+// Wp_(Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL)), 
+// Wm_(Eigen::MatrixXd::Zero(N_CONTROL, N_CONTROL))
+// {
+// }
 
 //------------------------------------------------------------------------------
 // rosparamによるコンストラクタ
@@ -255,21 +255,21 @@ ib2::ThrustAllocator::~ThrustAllocator() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::ThrustAllocator::ThrustAllocator(const ThrustAllocator&) = default;
+// ib2::ThrustAllocator::ThrustAllocator(const ThrustAllocator&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::ThrustAllocator&
-ib2::ThrustAllocator::operator=(const ThrustAllocator&) = default;
+// ib2::ThrustAllocator&
+// ib2::ThrustAllocator::operator=(const ThrustAllocator&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::ThrustAllocator::ThrustAllocator(ThrustAllocator&&) = default;
+// ib2::ThrustAllocator::ThrustAllocator(ThrustAllocator&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::ThrustAllocator&
-ib2::ThrustAllocator::operator=(ThrustAllocator&&) = default;
+// ib2::ThrustAllocator&
+// ib2::ThrustAllocator::operator=(ThrustAllocator&&) = default;
 
 //------------------------------------------------------------------------------
 // メンバ変数の設定
