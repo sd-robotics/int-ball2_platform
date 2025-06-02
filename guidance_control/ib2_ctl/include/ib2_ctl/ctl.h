@@ -5,6 +5,9 @@
 #include <rclcpp_components/register_node_macro.hpp>
 //fsm.h"    // Modification for platform packages
 #include "ib2_ctl/dtc.h"
+#include "ib2_ctl/ctl_body.h"
+#include "ib2_ctl/pos_att_controller.h"
+#include "ib2_ctl/pos_att_profiler.h"
 
 // Standard messages
 #include <example_interfaces/msg/float64_multi_array.hpp>
@@ -28,13 +31,13 @@
 #define TOPIC_CTL_STATUS  "/ctl/status"
 #define TOPIC_NAV_POSE    "/sensor_fusion/navigation"
 
-namespace ib2
-{
-    // classの前方宣言
-    class CtlBody;
-    class PosAttController;
-    class PosAttProfiler;
-}
+// namespace ib2
+// {
+//     // classの前方宣言
+//     class CtlBody;
+//     class PosAttController;
+//     class PosAttProfiler;
+// }
 
 namespace ib2
 {
@@ -304,19 +307,19 @@ private:
     ib2_interfaces::msg::Navigation last_nav_stamp_;
 
     /** 機体パラメータ */
-    std::unique_ptr<ib2::CtlBody> body_;
+    ib2::CtlBody body_;
 
     /** 誘導制御則 */
-    std::unique_ptr<ib2::PosAttController> controller_;
+    ib2::PosAttController controller_;
 
     /** 位置姿勢誘導プロファイル */
-    std::unique_ptr<ib2::PosAttProfiler> profiler_;
+    ib2::PosAttProfiler profiler_;
 
     /** ファン選択 */
     //std::unique_ptr<Fsm> fsm_;    // Modification for platform packages
 
     /** 検知 */
-    Dtc dtc_;
+    ib2::Dtc dtc_;
 
     /**  誘導制御モード */
     int32_t status_;

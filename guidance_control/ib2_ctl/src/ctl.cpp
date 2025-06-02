@@ -1,12 +1,12 @@
 
 #include "ib2_ctl/ctl.h"
-#include "ib2_ctl/ctl_body.h"
+// #include "ib2_ctl/ctl_body.h"
 #include "ib2_ctl/pos_controller.h"
 #include "ib2_ctl/att_controller.h"
-#include "ib2_ctl/pos_att_controller.h"
+// #include "ib2_ctl/pos_att_controller.h"
 #include "ib2_ctl/pos_profiler.h"
 #include "ib2_ctl/att_profiler.h"
-#include "ib2_ctl/pos_att_profiler.h"
+// #include "ib2_ctl/pos_att_profiler.h"
 #include "ib2_interfaces/srv/marker_correction.hpp"
 
 #include "ib2_ctl_common/Log.h"
@@ -36,7 +36,8 @@ namespace
 // コンストラクタ
 ib2::Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     rclcpp::Node("ctl", options),
-    dtc_(options),
+    dtc_(options), body_(options),
+    controller_(options), profiler_(options),
     seq_status_(0),
     valid_navigation_(false),
     interval_status_(0, 0),
@@ -105,12 +106,12 @@ bool ib2::Ctl::setMember()
         static const RangeCheckerD INTERVAL_RANGE
         (RangeCheckerD::TYPE::GE, 0.1, true);
         
-        ib2::CtlBody body(this->get_node_options());
-        ib2::PosController ctl_pos(this->get_node_options());
-        ib2::AttController ctl_att(this->get_node_options());
-        ib2::PosProfiler prof_pos(this->get_node_options());
-        ib2::AttProfiler prof_att(this->get_node_options());
-        ib2::ThrustAllocator thr(this->get_node_options());
+        // ib2::CtlBody body(this->get_node_options());
+        // ib2::PosController ctl_pos(this->get_node_options());
+        // ib2::AttController ctl_att(this->get_node_options());
+        // ib2::PosProfiler prof_pos(this->get_node_options());
+        // ib2::AttProfiler prof_att(this->get_node_options());
+        // ib2::ThrustAllocator thr(this->get_node_options());
         
         static const std::string ROSPARAM_INTERVAL_STATUS   ("/ctl/interval_status");
         static const std::string ROSPARAM_INTERVAL_FEEDBACK ("/ctl/interval_feedback");
@@ -248,28 +249,30 @@ bool ib2::Ctl::setMember()
         // if (timer_.isValid())
         //     timer_.setPeriod(interval_status_);
         
-        if (controller_)
-        {
-            controller_->setConfigPos(ctl_pos);
-            controller_->setConfigAtt(ctl_att);
-        }
-        else
-            controller_.reset(new ib2::PosAttController(ctl_pos, ctl_att));
-        if (profiler_)
-        {
-            profiler_->setConfigPos(prof_pos);
-            profiler_->setConfigAtt(prof_att);
-            profiler_->setConfigThr(thr);
-        }
-        else
-            profiler_.reset(new ib2::PosAttProfiler(prof_pos, prof_att, thr));
+        // TODO: check if initialization is properly done
+        // if (controller_)
+        // {
+        //     controller_.setConfigPos(ctl_pos);
+        //     controller_.setConfigAtt(ctl_att);
+        // }
+        // else
+        //     controller_.reset(new ib2::PosAttController(ctl_pos, ctl_att));
+        // if (profiler_)
+        // {
+        //     profiler_.setConfigPos(prof_pos);
+        //     profiler_.setConfigAtt(prof_att);
+        //     profiler_.setConfigThr(thr);
+        // }
+        // else
+        //     profiler_.reset(new ib2::PosAttProfiler(prof_pos, prof_att, thr));
+
         // Modification for platform packages
         //if (fsm_)s
         //    fsm_->setMember(thr);
         //else
         //    fsm_ = std::unique_ptr<Fsm>(new Fsm(nh_));
 
-        body_.reset(new ib2::CtlBody(body));
+        // body_.reset(new ib2::CtlBody(body));
         return true;
     }
     catch (const std::exception& e) 
@@ -288,8 +291,8 @@ bool ib2::Ctl::setMember()
 // 位置姿勢保持設定
 void ib2::Ctl::setKeepPose()
 {
-    controller_->flash();
-    auto profmsg(profiler_->setProfile(last_nav_stamp_));
+    controller_.flash();
+    auto profmsg(profiler_.setProfile(last_nav_stamp_));
     profile_pub_->publish(profmsg);
 }
 
@@ -313,7 +316,7 @@ bool ib2::Ctl::guidance(
             timeoutNavigation();
             break;
         }
-        auto fb = profiler_->statesToGoal(last_nav_stamp_);
+        auto fb = profiler_.statesToGoal(last_nav_stamp_);
         if (tnav - tfb >= interval_feedback_)
         {
             goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
@@ -355,9 +358,9 @@ void ib2::Ctl::target()
     auto goal = goal_handle_->get_goal();
     status_ = goal->type.type;
 
-    auto profmsg(profiler_->setProfile(last_nav_stamp_, goal, *body_));
+    auto profmsg(profiler_.setProfile(last_nav_stamp_, goal, body_));
     profile_pub_->publish(profmsg);
-    controller_->flash();
+    controller_.flash();
     
     // if (guidance(goal->type.type, tolerance_pos_, tolerance_att_))
     if (guidance(goal->type.type, tolerance_pos_, tolerance_att_))
@@ -380,7 +383,7 @@ void ib2::Ctl::release()
     else
     {       
         setKeepPose();
-        controller_->flash();
+        controller_.flash();
         rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
                           last_nav_stamp_.pose.header.stamp.nanosec);
         auto tfb(tnav);
@@ -388,7 +391,7 @@ void ib2::Ctl::release()
         while (tnav < toff)
         {
             tnav = last_nav_stamp_.pose.header.stamp;
-            auto fb = profiler_->statesToGoal(last_nav_stamp_);
+            auto fb = profiler_.statesToGoal(last_nav_stamp_);
             if (tnav - tfb >= interval_feedback_)
             {
                 goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
@@ -405,9 +408,9 @@ void ib2::Ctl::release()
         status_ = ib2_interfaces::msg::CtlStatusType::RELEASE;
         auto ipos(ib2::PosAttProfiler::DOCKING_POS::AIP);
         auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
-        auto profmsg(profiler_->dockingProfile(last_nav_stamp_, ipos, iatt, *body_));
+        auto profmsg(profiler_.dockingProfile(last_nav_stamp_, ipos, iatt, body_));
         profile_pub_->publish(profmsg);
-        controller_->flash();
+        controller_.flash();
         if (guidance(ib2_interfaces::msg::CtlStatusType::RELEASE, tolerance_pos_, tolerance_att_))
             goalTarget();
         if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
@@ -431,9 +434,9 @@ void ib2::Ctl::docking(bool correction)
         auto iatt(status_ < ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP ? 
                   ib2::PosAttProfiler::DOCKING_ATT::AIA : 
                   ib2::PosAttProfiler::DOCKING_ATT::RDA);
-        auto profmsg(profiler_->dockingProfile(last_nav_stamp_, ipos, iatt, *body_));
+        auto profmsg(profiler_.dockingProfile(last_nav_stamp_, ipos, iatt, body_));
         profile_pub_->publish(profmsg);
-        controller_->flash();
+        controller_.flash();
         
         if (!guidance(ib2_interfaces::msg::CtlStatusType::DOCK, 
                       tolerance_pos_stop_, tolerance_att_stop_))
@@ -466,7 +469,7 @@ void ib2::Ctl::docking(bool correction)
             return;
     }
     setKeepPose();
-    controller_->flash();
+    controller_.flash();
     if (goaled)
     {
         status_ = ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY;
@@ -490,15 +493,15 @@ void ib2::Ctl::dockingStandBy()
     auto tfb(tnav);
     auto toff(tnav + waitDocking_);
 
-    controller_->flash();
-    auto profmsg(profiler_->setProfile(dtc_.dockingTarget(tnav)));
+    controller_.flash();
+    auto profmsg(profiler_.setProfile(dtc_.dockingTarget(tnav)));
     profile_pub_->publish(profmsg);
 
     bool aborted(false);
     while (tnav < toff)
     {
         tnav = last_nav_stamp_.pose.header.stamp;
-        auto fb = profiler_->statesToGoal(last_nav_stamp_);
+        auto fb = profiler_.statesToGoal(last_nav_stamp_);
         if (tnav - tfb >= interval_feedback_)
         {
             goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
@@ -523,12 +526,12 @@ void ib2::Ctl::dockingStandBy()
 void ib2::Ctl::scan()
 {
     status_ = ib2_interfaces::msg::CtlStatusType::SCAN;
-    size_t nscan(profiler_->nscan());
+    size_t nscan(profiler_.nscan());
     for (size_t i = 0; i < nscan; ++i)
     {
-        auto profmsg(profiler_->scanProfile(last_nav_stamp_, i, *body_));
+        auto profmsg(profiler_.scanProfile(last_nav_stamp_, i, body_));
         profile_pub_->publish(profmsg);
-        controller_->flash();
+        controller_.flash();
         
         if (!guidance(ib2_interfaces::msg::CtlStatusType::SCAN, 
                       tolerance_pos_stop_, tolerance_att_stop_))
@@ -552,9 +555,9 @@ void ib2::Ctl::scan()
 void ib2::Ctl::stopping()
 {
     status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
-    auto profmsg(profiler_->stoppingProfile(last_nav_stamp_, *body_));
+    auto profmsg(profiler_.stoppingProfile(last_nav_stamp_, body_));
     profile_pub_->publish(profmsg);
-    controller_->flash();
+    controller_.flash();
     if (guidance(ib2_interfaces::msg::CtlStatusType::STOP_MOVING, 
                  tolerance_pos_stop_, tolerance_att_stop_))
         goalTarget();
@@ -579,15 +582,15 @@ void ib2::Ctl::cancelTarget(bool docking)
 {
     RCLCPP_INFO(this->get_logger(), "%s: Preempted", COMMAND_ACTION.c_str());
     status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
-    auto profmsg(profiler_->stoppingProfile(last_nav_stamp_, *body_));
+    auto profmsg(profiler_.stoppingProfile(last_nav_stamp_, body_));
     profile_pub_->publish(profmsg);
-    controller_->flash();
+    controller_.flash();
 
     rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
                       last_nav_stamp_.pose.header.stamp.nanosec);
     auto tbGoal = tnav;
     bool stayGoal(false);
-    auto te(profiler_->te() + waitCancel_);
+    auto te(profiler_.te() + waitCancel_);
     while (tnav < te)
     {
         tnav = last_nav_stamp_.pose.header.stamp;
@@ -596,7 +599,7 @@ void ib2::Ctl::cancelTarget(bool docking)
             timeoutNavigation();
             break;
         }
-        auto fb = profiler_->statesToGoal(last_nav_stamp_);
+        auto fb = profiler_.statesToGoal(last_nav_stamp_);
         if (reachGoal(stayGoal, tbGoal, tnav, fb,
                       tolerance_pos_stop_, tolerance_att_stop_))
             break;
@@ -607,16 +610,16 @@ void ib2::Ctl::cancelTarget(bool docking)
         status_ = ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP;
         auto ipos(ib2::PosAttProfiler::DOCKING_POS::AIP);
         auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
-        auto profmsg(profiler_->dockingProfile
-                     (last_nav_stamp_, ipos, iatt, *body_));
+        auto profmsg(profiler_.dockingProfile
+                     (last_nav_stamp_, ipos, iatt, body_));
         profile_pub_->publish(profmsg);
-        controller_->flash();
+        controller_.flash();
 
         rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
                           last_nav_stamp_.pose.header.stamp.nanosec);
         auto tbGoal = tnav;
         bool stayGoal(false);
-        auto te(profiler_->te() + waitCancel_);
+        auto te(profiler_.te() + waitCancel_);
         while (tnav < te)
         {
             tnav = last_nav_stamp_.pose.header.stamp;
@@ -625,13 +628,13 @@ void ib2::Ctl::cancelTarget(bool docking)
                 timeoutNavigation();
                 break;
             }
-            auto fb = profiler_->statesToGoal(last_nav_stamp_);
+            auto fb = profiler_.statesToGoal(last_nav_stamp_);
             if (reachGoal(stayGoal, tbGoal, tnav, fb,
                           tolerance_pos_stop_, tolerance_att_stop_))
                 break;
         }
     }
-    controller_->flash();
+    controller_.flash();
 }
 
 //------------------------------------------------------------------------------
@@ -643,7 +646,7 @@ void ib2::Ctl::goalTarget()
     r.stamp = this->get_clock()->now();
     r.type = CtlCommand::Result::TERMINATE_SUCCESS;
     goal_handle_->succeed(std::make_shared<CtlCommand::Result>(r));
-    controller_->flash();
+    controller_.flash();
 }
 
 //------------------------------------------------------------------------------
@@ -656,7 +659,7 @@ void ib2::Ctl::timeoutNavigation()
     setKeepPose();
     status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
 
-    auto wrench = controller_->wrenchCommandStop(this->get_clock()->now());
+    auto wrench = controller_.wrenchCommandStop(this->get_clock()->now());
     //fsm_->subscribeCommand(wrench);    // Modification for platform packages
     wrench_pub_->publish(wrench);
 }
@@ -859,7 +862,7 @@ void ib2::Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal
                        ib2_interfaces::msg::CtlStatusType::STAND_BY : 
                        ib2_interfaces::msg::CtlStatusType::KEEP_POSE);
             setKeepPose();
-            controller_->flash();
+            controller_.flash();
             goalTarget();
         }
         else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::RELEASE)
@@ -993,7 +996,7 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
         {
             if (publishWrench)
             {
-                auto wrench = controller_->wrenchCommandStop(nav_stamp.pose.header.stamp);
+                auto wrench = controller_.wrenchCommandStop(nav_stamp.pose.header.stamp);
                 //fsm_->subscribeCommand(wrench);    /// Modification for platform packages
                 wrench_pub_->publish(wrench);
                 publishWrench = false;
@@ -1004,11 +1007,11 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
             publishWrench = true;
             
             // 位置姿勢誘導プロファイル
-            auto p = profiler_->posAttProfile(nav_stamp.pose.header.stamp);
+            auto p = profiler_.posAttProfile(nav_stamp.pose.header.stamp);
             
             // 力トルク
             geometry_msgs::msg::WrenchStamped wrench
-            (controller_->wrenchCommand(nav_stamp, p, *body_));
+            (controller_.wrenchCommand(nav_stamp, p, body_));
             if (status_ == ib2_interfaces::msg::CtlStatusType::SCAN)
             {
                 wrench.wrench.force.x = 0.;
@@ -1038,7 +1041,7 @@ void ib2::Ctl::timerCallback()
 {
     try 
     {
-        auto p = profiler_->posAttProfile(this->get_clock()->now());
+        auto p = profiler_.posAttProfile(this->get_clock()->now());
         auto msg(p.status(status_));
         // msg.pose.header.seq = ++seq_status_;
         status_pub_->publish(msg);
