@@ -33,7 +33,10 @@ namespace ib2
     class PosAttController;
     class PosAttProfiler;
 }
-    
+
+namespace ib2
+{
+
 /**
 * @brief 制御ノードクラス
 */
@@ -326,8 +329,9 @@ private:
     bool valid_navigation_;
 };
 
+} // namespace ib2
 
-rclcpp_action::GoalResponse Ctl::handle_goal(
+rclcpp_action::GoalResponse ib2::Ctl::handle_goal(
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const CtlCommand::Goal> goal)
 {
@@ -339,7 +343,7 @@ rclcpp_action::GoalResponse Ctl::handle_goal(
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
-rclcpp_action::CancelResponse Ctl::handle_cancel(
+rclcpp_action::CancelResponse ib2::Ctl::handle_cancel(
     const std::shared_ptr<GoalHandleCtlCommand> goal_handle)
 {
     RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
@@ -351,8 +355,10 @@ void Ctl::handle_accepted(const std::shared_ptr<GoalHandleCtlCommand> goal_handl
 {
     using namespace std::placeholders;
     // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-    std::thread{std::bind(&Ctl::commandCallback, this, std::placeholders::_1), goal_handle}.detach();
+    std::thread{std::bind(&ib2::Ctl::commandCallback, this, std::placeholders::_1), goal_handle}.detach();
 }
 
+
+RCLCPP_COMPONENTS_REGISTER_NODE(ib2::Ctl)
 
 // End Of File -----------------------------------------------------------------

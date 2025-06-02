@@ -34,7 +34,7 @@ namespace
 
 //------------------------------------------------------------------------------
 // コンストラクタ
-Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
+ib2::Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     rclcpp::Node("ctl", options),
     dtc_(options),
     seq_status_(0),
@@ -56,14 +56,14 @@ Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     command_as_ = rclcpp_action::create_server<ib2_interfaces::action::CtlCommand>(
         this,
         COMMAND_ACTION,
-        std::bind(&Ctl::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&Ctl::handle_cancel, this, std::placeholders::_1),
-        std::bind(&Ctl::handle_accepted, this, std::placeholders::_1));
+        std::bind(&ib2::Ctl::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&ib2::Ctl::handle_cancel, this, std::placeholders::_1),
+        std::bind(&ib2::Ctl::handle_accepted, this, std::placeholders::_1));
     // command_as_.start();
     
     // Service server
     update_ss_ = this->create_service<ib2_interfaces::srv::UpdateParameter>(
-        UPDATE_SERVICE, std::bind(&Ctl::updateCallback, this, std::placeholders::_1, std::placeholders::_2));
+        UPDATE_SERVICE, std::bind(&ib2::Ctl::updateCallback, this, std::placeholders::_1, std::placeholders::_2));
     
     // Service client
     marker_sc_ = this->create_client<ib2_interfaces::srv::MarkerCorrection>(
@@ -73,7 +73,7 @@ Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
 
     // Subscribers
     navinfo_sub_ = this->create_subscription<ib2_interfaces::msg::Navigation>(
-        TOPIC_NAV_POSE, 5, std::bind(&Ctl::navinfoCallback, this, std::placeholders::_1));
+        TOPIC_NAV_POSE, 5, std::bind(&ib2::Ctl::navinfoCallback, this, std::placeholders::_1));
 
     // Advertised messages
     wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
@@ -87,16 +87,16 @@ Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
 
     timer_ = this->create_wall_timer(
         std::chrono::nanoseconds(interval_status_.nanoseconds()),
-        std::bind(&Ctl::timerCallback, this));
+        std::bind(&ib2::Ctl::timerCallback, this));
 }
 
 //------------------------------------------------------------------------------
 // デストラクタ
-Ctl::~Ctl() = default;
+ib2::Ctl::~Ctl() = default;
 
 //------------------------------------------------------------------------------
 // メンバ設定
-bool Ctl::setMember()
+bool ib2::Ctl::setMember()
 {
     using namespace ib2_mss;
     // TODO : メンバを保存
@@ -286,7 +286,7 @@ bool Ctl::setMember()
 
 //------------------------------------------------------------------------------
 // 位置姿勢保持設定
-void Ctl::setKeepPose()
+void ib2::Ctl::setKeepPose()
 {
     controller_->flash();
     auto profmsg(profiler_->setProfile(last_nav_stamp_));
@@ -295,7 +295,7 @@ void Ctl::setKeepPose()
 
 //------------------------------------------------------------------------------
 // 制御目標への誘導
-bool Ctl::guidance(
+bool ib2::Ctl::guidance(
     int32_t goal_type, double tolp, double tola)
 {
     rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
@@ -350,7 +350,7 @@ bool Ctl::guidance(
 
 //------------------------------------------------------------------------------
 // ターゲットモードの処理
-void Ctl::target()
+void ib2::Ctl::target()
 {
     auto goal = goal_handle_->get_goal();
     status_ = goal->type.type;
@@ -373,7 +373,7 @@ void Ctl::target()
 
 //------------------------------------------------------------------------------
 // リリースモードの処理
-void Ctl::release()
+void ib2::Ctl::release()
 {
     if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
         abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
@@ -417,7 +417,7 @@ void Ctl::release()
 
 //------------------------------------------------------------------------------
 // ホーミングモードの処理
-void Ctl::docking(bool correction)
+void ib2::Ctl::docking(bool correction)
 {
     bool goaled(false);
     int32_t start_status_ = (correction ? ib2_interfaces::msg::CtlStatusType::MOVING_TO_AIA_AIP : 
@@ -483,7 +483,7 @@ void Ctl::docking(bool correction)
 
 //------------------------------------------------------------------------------
 // ドッキングモードの処理
-void Ctl::dockingStandBy()
+void ib2::Ctl::dockingStandBy()
 {
     rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
                       last_nav_stamp_.pose.header.stamp.nanosec);
@@ -520,7 +520,7 @@ void Ctl::dockingStandBy()
 
 //------------------------------------------------------------------------------
 // スキャンモードの処理
-void Ctl::scan()
+void ib2::Ctl::scan()
 {
     status_ = ib2_interfaces::msg::CtlStatusType::SCAN;
     size_t nscan(profiler_->nscan());
@@ -549,7 +549,7 @@ void Ctl::scan()
 
 //------------------------------------------------------------------------------
 // 停止誘導モードの処理
-void Ctl::stopping()
+void ib2::Ctl::stopping()
 {
     status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
     auto profmsg(profiler_->stoppingProfile(last_nav_stamp_, *body_));
@@ -563,7 +563,7 @@ void Ctl::stopping()
 
 //------------------------------------------------------------------------------
 // アクション中止
-void Ctl::abortAction(uint8_t result_type)
+void ib2::Ctl::abortAction(uint8_t result_type)
 {
     ib2_interfaces::action::CtlCommand::Result r;
     r.stamp = this->get_clock()->now();
@@ -575,7 +575,7 @@ void Ctl::abortAction(uint8_t result_type)
 
 //------------------------------------------------------------------------------
 // 制御目標キャンセル時の処理
-void Ctl::cancelTarget(bool docking)
+void ib2::Ctl::cancelTarget(bool docking)
 {
     RCLCPP_INFO(this->get_logger(), "%s: Preempted", COMMAND_ACTION.c_str());
     status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
@@ -636,7 +636,7 @@ void Ctl::cancelTarget(bool docking)
 
 //------------------------------------------------------------------------------
 // 制御目標到達時の処理
-void Ctl::goalTarget()
+void ib2::Ctl::goalTarget()
 {
     RCLCPP_INFO(this->get_logger(), "%s: Succeeded", COMMAND_ACTION.c_str());
     CtlCommand::Result r;
@@ -648,7 +648,7 @@ void Ctl::goalTarget()
 
 //------------------------------------------------------------------------------
 // 航法メッセージのタイムアウト処理
-void Ctl::timeoutNavigation()
+void ib2::Ctl::timeoutNavigation()
 {
     RCLCPP_WARN(this->get_logger(), "Navigation message timed out");
 
@@ -663,7 +663,7 @@ void Ctl::timeoutNavigation()
 
 //------------------------------------------------------------------------------
 // 制御目標到達判定
-bool Ctl::reachGoal
+bool ib2::Ctl::reachGoal
 (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
  const ib2_interfaces::action::CtlCommand::Feedback& fb, double tolp, double tola)
 {
@@ -692,7 +692,7 @@ bool Ctl::reachGoal
 
 //------------------------------------------------------------------------------
 // 制御目標到達判定(SCAN)
-bool Ctl::reachGoalScan
+bool ib2::Ctl::reachGoalScan
 (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
  const ib2_interfaces::action::CtlCommand::Feedback& fb, double tola)
 {
@@ -714,7 +714,7 @@ bool Ctl::reachGoalScan
 
 //------------------------------------------------------------------------------
 // 制御目標到達判定(DOCK)
-bool Ctl::reachGoalDock()
+bool ib2::Ctl::reachGoalDock()
 {
     if (dtc_.status() != Dtc::DETECT::DOCKING)
         return false;
@@ -727,7 +727,7 @@ bool Ctl::reachGoalDock()
 
 //------------------------------------------------------------------------------
 // 制御目標妥当性確認
-bool Ctl::validCommand(const std::shared_ptr<const CtlCommand::Goal>& goal) const
+bool ib2::Ctl::validCommand(const std::shared_ptr<const CtlCommand::Goal>& goal) const
 {
     auto& drg(goal->target.pose.position);
     auto& dqg(goal->target.pose.orientation);
@@ -743,7 +743,7 @@ bool Ctl::validCommand(const std::shared_ptr<const CtlCommand::Goal>& goal) cons
 
 //------------------------------------------------------------------------------
 // 航法メッセージ妥当性確認
-bool Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first) const
+bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first) const
 {
     rclcpp::Time tn(nav.pose.header.stamp.sec,
                     nav.pose.header.stamp.nanosec);
@@ -834,7 +834,7 @@ bool Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first
 
 //------------------------------------------------------------------------------
 // 制御目標アクション受信時の処理
-void Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal_handle)
+void ib2::Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal_handle)
 {
     RCLCPP_INFO(this->get_logger(), "Executing goal");
     goal_handle_ = goal_handle;
@@ -887,7 +887,7 @@ void Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal_hand
     }
     catch (...) 
     {
-        RCLCPP_ERROR(this->get_logger(), "caught exception at Ctl::commandCallback");
+        RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::commandCallback");
         abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
         status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
     }
@@ -895,7 +895,7 @@ void Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal_hand
 
 //------------------------------------------------------------------------------
 // Callback of update parameter service
-bool Ctl::updateCallback(
+bool ib2::Ctl::updateCallback(
     const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
     std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res)
 {
@@ -918,7 +918,7 @@ bool Ctl::updateCallback(
 
 //------------------------------------------------------------------------------
 // Callback of subscribe on the TOPIC_NAV_POSE
-void Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
+void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
 {
 //    ROS_INFO_STREAM(nav_stamp);
     static size_t invalid_counter(0);
@@ -1027,13 +1027,13 @@ void Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
     }
     catch (...) 
     {
-        RCLCPP_ERROR(this->get_logger(), "caught exception at Ctl::navinfoCallback");
+        RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::navinfoCallback");
     }
 }
 
 //------------------------------------------------------------------------------
 // Callback of publish on the TOPIC_NAV_POSE
-void Ctl::timerCallback()
+void ib2::Ctl::timerCallback()
 {
     try 
     {
@@ -1049,7 +1049,7 @@ void Ctl::timerCallback()
     }
     catch (...) 
     {
-        RCLCPP_ERROR(this->get_logger(), "caught exception at Ctl::timerCallback");
+        RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::timerCallback");
     }
 }
 
