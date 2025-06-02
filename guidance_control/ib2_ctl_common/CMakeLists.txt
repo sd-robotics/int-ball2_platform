@@ -41,16 +41,31 @@ add_library(${PROJECT_NAME} SHARED
 ament_target_dependencies(${PROJECT_NAME}
   "rclcpp"
 )
+target_link_libraries(${PROJECT_NAME}
+  ${EIGEN3_LIBRARIES}
+)
 
-install(TARGETS ${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin)
+# Export include directories and libraries
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+ament_export_dependencies(
+  "rclcpp"
+  "Eigen3"
+)
+
 
 #############
 ## Install ##
 #############
 
+# Install library
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+# Install headers
 install(DIRECTORY
   include/${PROJECT_NAME}
   DESTINATION include
