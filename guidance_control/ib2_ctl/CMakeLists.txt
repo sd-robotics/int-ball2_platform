@@ -57,15 +57,26 @@ ament_target_dependencies(${PROJECT_NAME}
   "ib2_interfaces"
   "ib2_ctl_common"
 )
+target_link_libraries(${PROJECT_NAME}
+  ${EIGEN3_LIBRARIES}
+)
+
+# Export include directories and libraries
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+ament_export_dependencies(
+  "rclcpp"
+  "Eigen3"
+)
+
+#############
+## Install ##
+#############
 
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
-
-#############
-## Install ##
-#############
 
 install(DIRECTORY
   include/${PROJECT_NAME}
