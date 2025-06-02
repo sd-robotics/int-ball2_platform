@@ -22,19 +22,20 @@ namespace
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
-Fsm::Fsm(const rclcpp::NodeOptions& options) :
-    rclcpp::Node("fsm", options)
+ib2::Fsm::Fsm(const rclcpp::NodeOptions& options) :
+    rclcpp::Node("fsm", options),
+    thr_(options)
 {
     // 初期化　
-    ib2::ThrustAllocator thr(options);
-    setMember(thr);
+    // ib2::ThrustAllocator thr(options);
+    setMember();
 
     // TODO: configure QoS
 
     // Subscriber
     wrench_sub_ = this->create_subscription<geometry_msgs::msg::WrenchStamped>(
         TOPIC_CTL_WRENCH, 5,
-        std::bind(&Fsm::wrenchCallback, this, std::placeholders::_1)); // Modification for platform packages
+        std::bind(&ib2::Fsm::wrenchCallback, this, std::placeholders::_1)); // Modification for platform packages
 
     // Advertised messages　（デューティ）
     pub_duty_   = this->create_publisher<example_interfaces::msg::Float64MultiArray>(
@@ -43,11 +44,11 @@ Fsm::Fsm(const rclcpp::NodeOptions& options) :
 
 //------------------------------------------------------------------------------
 // デストラクタ
-Fsm::~Fsm() = default;
+ib2::Fsm::~Fsm() = default;
 
 //------------------------------------------------------------------------------
 // メンバ設定
-bool Fsm::setMember(const ib2::ThrustAllocator& thr)
+bool ib2::Fsm::setMember()
 {
     using namespace ib2_mss;
     static const RangeCheckerD PWM_RANGE
@@ -55,13 +56,13 @@ bool Fsm::setMember(const ib2::ThrustAllocator& thr)
     static const RangeCheckerI32 N_FAN_RANGE
     (RangeCheckerI32::TYPE::GE_LE, 0, 8, true);
     RangeCheckerD fj0_range
-    (RangeCheckerD::TYPE::GE_LE, 0., thr.Fmax(), true);
+    (RangeCheckerD::TYPE::GE_LE, 0., thr_.Fmax(), true);
 
     static const std::string ROSPARAM_PWM_MAX     ("/fan/PWMmax");
     static const std::string ROSPARAM_N_SATURATION("/fan/n_saturation");
 
     bool ret = true;
-    int nfan(thr.nfan());
+    int nfan(thr_.nfan());
     double PWMmax(-1.);
     int nsaturation(-1);
     Eigen::VectorXd fan_kj(Eigen::VectorXd::Ones(nfan) * -1.);
@@ -131,12 +132,11 @@ bool Fsm::setMember(const ib2::ThrustAllocator& thr)
     ret = ret && fj0_range.valid(fj0.maxCoeff(), "maximum fj0");
     ret = ret && RangeCheckerD::notNegative(fan_kj.minCoeff(), false, "minimum fan kj");
     
-    thr_  = thr;
-    nfan_ = nfan;
+    nfan_        = nfan;
     pwm_max_     = Eigen::VectorXd::Ones(nfan_) * PWMmax;
     nsaturation_ = nsaturation;
-    fan_kj_ = fan_kj;
-    fj0_    = fj0;
+    fan_kj_      = fan_kj;
+    fj0_         = fj0;
 
     RCLCPP_INFO(this->get_logger(), "******** Set Parameters in fsm.cpp");
     RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_PWM_MAX.c_str(), pwm_max_(0));
@@ -166,8 +166,8 @@ bool Fsm::setMember(const ib2::ThrustAllocator& thr)
 
 //------------------------------------------------------------------------------
 // 制御推力トルクのサブスクライバのコールバック関数
-//void Fsm::subscribeCommand    // Modification for platform packages
-void Fsm::wrenchCallback        // Modification for platform packages
+//void ib2::Fsm::subscribeCommand    // Modification for platform packages
+void ib2::Fsm::wrenchCallback        // Modification for platform packages
 (const geometry_msgs::msg::WrenchStamped& wrench_command) const
 {
     // 力トルクコマンド格納
@@ -187,7 +187,7 @@ void Fsm::wrenchCallback        // Modification for platform packages
 
 //------------------------------------------------------------------------------
 // 各ファンの駆動デューティ比のPublish
-void Fsm::publishDuty(const Eigen::VectorXd& pwm) const
+void ib2::Fsm::publishDuty(const Eigen::VectorXd& pwm) const
 {
     assert(pwm.size() == nfan_);
 
@@ -205,7 +205,7 @@ void Fsm::publishDuty(const Eigen::VectorXd& pwm) const
 
 //------------------------------------------------------------------------------
 // ファン推進力飽和時処理
-void Fsm::saturation(Eigen::VectorXd& pwm) const
+void ib2::Fsm::saturation(Eigen::VectorXd& pwm) const
 {
     // 上位 nsaturation_個のファンに最大値を設定
     if ((pwm.array() > pwm_max_.array()).count() >= nsaturation_)
@@ -228,17 +228,6 @@ void Fsm::saturation(Eigen::VectorXd& pwm) const
                 pwm(i) = pwm_max_(i);
         }
     }
-}
-
-// // Modification for platform packages
-// メイン関数
-int main(int argc, char **argv)
-{
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<Fsm>();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
 }
 
 // End Of File -----------------------------------------------------------------

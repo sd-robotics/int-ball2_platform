@@ -2,9 +2,14 @@
 
 #include <numeric>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
 #include <example_interfaces/msg/float64_multi_array.hpp>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include "ib2_ctl/thrust_allocator.h"
+
+
+namespace ib2
+{
 
 /**
 * @brief ファン選択ノードクラス
@@ -47,7 +52,7 @@ public:
      * @retval true 設定成功
      * @retval false 設定失敗
      */
-    bool setMember(const ib2::ThrustAllocator& thr);
+    bool setMember();
 
     //----------------------------------------------------------------------
     // 実装
@@ -97,5 +102,10 @@ private:
     /** 力トルクのサブスクライバ */
     rclcpp::Subscription<geometry_msgs::msg::WrenchStamped>::SharedPtr wrench_sub_; // Modification for platform packages
 };
+
+} // namespace ib2
+
+// Register the node with the rclcpp_components library
+RCLCPP_COMPONENTS_REGISTER_NODE(ib2::Fsm)
 
 // End Of File -----------------------------------------------------------------
