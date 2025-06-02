@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10.2)
 project(ib2_ctl)
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -15,6 +18,10 @@ find_package(ib2_ctl_common REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
 find_package(Eigen3 REQUIRED)
+
+###########
+## Build ##
+###########
 
 # Find libraries
 include_directories(
@@ -37,6 +44,10 @@ add_library(${PROJECT_NAME} SHARED
   src/thrust_allocator.cpp
 )
 
+rclcpp_components_register_node(${PROJECT_NAME}
+  PLUGIN "ib2::Ctl"
+  EXECUTABLE sobit_pro_control_node)
+
 ament_target_dependencies(${PROJECT_NAME}
   "rclcpp"
   "rclcpp_action"
@@ -48,37 +59,23 @@ ament_target_dependencies(${PROJECT_NAME}
   "builtin_interfaces"
 )
 
-## TODO: Use component interface for the library
-add_executable(${PROJECT_NAME}
-  src/att_controller.cpp
-  src/att_profiler.cpp
-  src/ctl.cpp
-  src/ctl_body.cpp
-  src/ctl_elements.cpp
-  src/dtc.cpp
-  src/pos_att_controller.cpp
-  src/pos_att_profiler.cpp
-  src/pos_controller.cpp
-  src/pos_profiler.cpp
-  src/thrust_allocator.cpp
-)
-
-#############
-## Install ##
-#############
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
+#############
+## Install ##
+#############
+
+install(DIRECTORY
+  include/${PROJECT_NAME}
+  DESTINATION include
+)
+
 install(DIRECTORY
   config
   launch DESTINATION share/${PROJECT_NAME}
-)
-
-install(
-  DIRECTORY include/${PROJECT_NAME}
-  DESTINATION include
 )
 
 
