@@ -115,25 +115,26 @@ namespace
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
-ib2::PosAttProfiler::PosAttProfiler() = default;
+// ib2::PosAttProfiler::PosAttProfiler() = default;
 
 //------------------------------------------------------------------------------
 // rosparamによるコンストラクタ
-ib2::PosAttProfiler::PosAttProfiler(const rclcpp::NodeOptions& options) :
-    rclcpp::Node("pos_att_profiler", options), msg_seq_(0)
+ib2::PosAttProfiler::PosAttProfiler(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
+    rclcpp::Node("pos_att_profiler", options),
+    msg_seq_(0), pos_(options), att_(options), thr_(options)
 {
-    setMember(options);
+    // setMember(options);
 }
 
 //------------------------------------------------------------------------------
 // 値によるコンストラクタ
-ib2::PosAttProfiler::PosAttProfiler
-(const ib2::PosProfiler& pos, const ib2::AttProfiler& att,
- const ib2::ThrustAllocator& thr) :
-    rclcpp::Node("pos_att_profiler"),
-    pos_(pos), att_(att), thr_(thr), msg_seq_(0)
-{
-}
+// ib2::PosAttProfiler::PosAttProfiler
+// (const ib2::PosProfiler& pos, const ib2::AttProfiler& att,
+//  const ib2::ThrustAllocator& thr) :
+//     rclcpp::Node("pos_att_profiler"),
+//     pos_(pos), att_(att), thr_(thr), msg_seq_(0)
+// {
+// }
 
 //------------------------------------------------------------------------------
 // デストラクタ
@@ -141,55 +142,55 @@ ib2::PosAttProfiler::~PosAttProfiler() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::PosAttProfiler::PosAttProfiler(const PosAttProfiler&) = default;
+// ib2::PosAttProfiler::PosAttProfiler(const PosAttProfiler&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::PosAttProfiler&
-ib2::PosAttProfiler::operator=(const PosAttProfiler&) = default;
+// ib2::PosAttProfiler&
+// ib2::PosAttProfiler::operator=(const PosAttProfiler&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::PosAttProfiler::PosAttProfiler(PosAttProfiler&&) = default;
+// ib2::PosAttProfiler::PosAttProfiler(PosAttProfiler&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::PosAttProfiler& 
-ib2::PosAttProfiler::operator=(PosAttProfiler&&) = default;
+// ib2::PosAttProfiler& 
+// ib2::PosAttProfiler::operator=(PosAttProfiler&&) = default;
 
 //------------------------------------------------------------------------------
 // メンバ設定
-bool ib2::PosAttProfiler::setMember(const rclcpp::NodeOptions& options)
-{
-    pos_ = ib2::PosProfiler     (options);
-    att_ = ib2::AttProfiler     (options);
-    thr_ = ib2::ThrustAllocator (options);
-    return true;
-}
+// bool ib2::PosAttProfiler::setMember(const rclcpp::NodeOptions& options)
+// {
+//     pos_ = ib2::PosProfiler     (options);
+//     att_ = ib2::AttProfiler     (options);
+//     thr_ = ib2::ThrustAllocator (options);
+//     return true;
+// }
 
 //------------------------------------------------------------------------------
 // 位置誘導プロファイルパラメータ設定
-bool ib2::PosAttProfiler::setConfigPos(const ib2::PosProfiler& p)
-{
-    pos_ = p;
-    return true;
-}
+// bool ib2::PosAttProfiler::setConfigPos(const ib2::PosProfiler& p)
+// {
+//     pos_ = p;
+//     return true;
+// }
 
 //------------------------------------------------------------------------------
 // 姿勢誘導プロファイルパラメータ設定
-bool ib2::PosAttProfiler::setConfigAtt(const ib2::AttProfiler& p)
-{
-    att_ = p;
-    return true;
-}
+// bool ib2::PosAttProfiler::setConfigAtt(const ib2::AttProfiler& p)
+// {
+//     att_ = p;
+//     return true;
+// }
 
 //------------------------------------------------------------------------------
 // 姿勢誘導プロファイルパラメータ設定
-bool ib2::PosAttProfiler::setConfigThr(const ib2::ThrustAllocator& thr)
-{
-    thr_ = thr;
-    return true;
-}
+// bool ib2::PosAttProfiler::setConfigThr(const ib2::ThrustAllocator& thr)
+// {
+//     thr_ = thr;
+//     return true;
+// }
 
 //------------------------------------------------------------------------------
 // 位置姿勢誘導プロファイル作成

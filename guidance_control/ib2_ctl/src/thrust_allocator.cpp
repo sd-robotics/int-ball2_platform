@@ -254,21 +254,21 @@ ib2::ThrustAllocator::~ThrustAllocator() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::ThrustAllocator::ThrustAllocator(const ThrustAllocator&) = default;
+// ib2::ThrustAllocator::ThrustAllocator(const ThrustAllocator&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::ThrustAllocator&
-ib2::ThrustAllocator::operator=(const ThrustAllocator&) = default;
+// ib2::ThrustAllocator&
+// ib2::ThrustAllocator::operator=(const ThrustAllocator&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::ThrustAllocator::ThrustAllocator(ThrustAllocator&&) = default;
+// ib2::ThrustAllocator::ThrustAllocator(ThrustAllocator&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::ThrustAllocator&
-ib2::ThrustAllocator::operator=(ThrustAllocator&&) = default;
+// ib2::ThrustAllocator&
+// ib2::ThrustAllocator::operator=(ThrustAllocator&&) = default;
 
 //------------------------------------------------------------------------------
 // メンバ変数の設定

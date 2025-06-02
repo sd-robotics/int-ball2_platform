@@ -15,7 +15,7 @@ namespace ib2
     public:
         /** デフォルトコンストラクタ */
         AttProfiler();
-        
+
         /** @brief コンストラクタ
          * @param options ノードオプション
          */
@@ -28,16 +28,16 @@ namespace ib2
         // コピー/ムーブ
     public:
         /** コピーコンストラクタ. */
-        AttProfiler(const AttProfiler&);
+        AttProfiler(const AttProfiler&) = delete;
         
         /** コピー代入演算子. */
-        AttProfiler& operator=(const AttProfiler&);
+        AttProfiler& operator=(const AttProfiler&) = delete;
         
         /** ムーブコンストラクタ. */
-        AttProfiler(AttProfiler&&);
+        AttProfiler(AttProfiler&&) = delete;
         
         /** ムーブ代入演算子. */
-        AttProfiler& operator=(AttProfiler&&);
+        AttProfiler& operator=(AttProfiler&&) = delete;
         
         //----------------------------------------------------------------------
         // 属性(Getter)

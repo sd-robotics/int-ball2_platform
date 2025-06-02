@@ -62,20 +62,20 @@ ib2::AttController::~AttController() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::AttController::AttController(const AttController&) = default;
+// ib2::AttController::AttController(const AttController&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::AttController&
-ib2::AttController::operator=(const AttController&) = default;
+// ib2::AttController&
+// ib2::AttController::operator=(const AttController&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::AttController::AttController(AttController&&) = default;
+// ib2::AttController::AttController(AttController&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::AttController& ib2::AttController::operator=(AttController&&) = default;
+// ib2::AttController& ib2::AttController::operator=(AttController&&) = default;
 
 //------------------------------------------------------------------------------
 //  比例ゲインの取得

@@ -113,22 +113,22 @@ ib2::PosProfiler::~PosProfiler() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::PosProfiler::PosProfiler
-(const PosProfiler&) = default;
+// ib2::PosProfiler::PosProfiler
+// (const PosProfiler&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::PosProfiler&
-ib2::PosProfiler::operator=(const PosProfiler&) = default;
+// ib2::PosProfiler&
+// ib2::PosProfiler::operator=(const PosProfiler&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::PosProfiler::PosProfiler(PosProfiler&&) = default;
+// ib2::PosProfiler::PosProfiler(PosProfiler&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::PosProfiler&
-ib2::PosProfiler::operator=(PosProfiler&&) = default;
+// ib2::PosProfiler&
+// ib2::PosProfiler::operator=(PosProfiler&&) = default;
 
 //------------------------------------------------------------------------------
 //  位置プロファイル最大推力の取得

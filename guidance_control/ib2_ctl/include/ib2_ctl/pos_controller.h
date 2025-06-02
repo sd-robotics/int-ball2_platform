@@ -29,16 +29,16 @@ namespace ib2
         // コピー/ムーブ
     public:
         /** コピーコンストラクタ. */
-        PosController(const PosController&);
+        PosController(const PosController&) = delete;
 
         /** コピー代入演算子. */
-        PosController& operator=(const PosController&);
+        PosController& operator=(const PosController&) = delete;
 
         /** ムーブコンストラクタ. */
-        PosController(PosController&&);
+        PosController(PosController&&) = delete;
 
         /** ムーブ代入演算子. */
-        PosController& operator=(PosController&&);
+        PosController& operator=(PosController&&) = delete;
 
         //----------------------------------------------------------------------
         // 操作(Setter)

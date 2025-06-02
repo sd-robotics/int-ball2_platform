@@ -12,7 +12,7 @@ namespace
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
-Dtc::Dtc(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
+ib2::Dtc::Dtc(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     rclcpp::Node("dtc", options),
     status_(DETECT::NONE),dtc_sigmaup_started_(false),
     sigma_start_counter_(0),sigma_end_counter_(0),from_sigup_counter_(0),
@@ -45,11 +45,11 @@ Dtc::Dtc(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
 
 //------------------------------------------------------------------------------
 // デストラクタ
-Dtc::~Dtc() = default;
+ib2::Dtc::~Dtc() = default;
 
 //------------------------------------------------------------------------------
 // メンバ設定
-bool Dtc::setMember()
+bool ib2::Dtc::setMember()
 {
     using namespace ib2_mss;
 
@@ -177,7 +177,7 @@ bool Dtc::setMember()
 
 //------------------------------------------------------------------------------
 // 検知処理
-Dtc::DETECT Dtc::detection(const ib2_interfaces::msg::Navigation nav_stamp,
+ib2::Dtc::DETECT ib2::Dtc::detection(const ib2_interfaces::msg::Navigation nav_stamp,
  const int32_t ctl_status) 
 {
     // 航法値をキューに格納
@@ -191,7 +191,7 @@ Dtc::DETECT Dtc::detection(const ib2_interfaces::msg::Navigation nav_stamp,
 
 //------------------------------------------------------------------------------
 // ドッキング目標値の取得
-ib2_interfaces::msg::Navigation Dtc::dockingTarget(const rclcpp::Time& t) const
+ib2_interfaces::msg::Navigation ib2::Dtc::dockingTarget(const rclcpp::Time& t) const
 {
     ib2_interfaces::msg::Navigation o;
     o.pose.header.stamp = t;
@@ -207,7 +207,7 @@ ib2_interfaces::msg::Navigation Dtc::dockingTarget(const rclcpp::Time& t) const
 
 //------------------------------------------------------------------------------
 // 検知ステータスのクリア
-void Dtc::clearStatus() 
+void ib2::Dtc::clearStatus() 
 {
     // ステータスクリア
     status_= DETECT::NONE; 
@@ -223,7 +223,7 @@ void Dtc::clearStatus()
 
 //------------------------------------------------------------------------------
 // 判定
-void Dtc::check(const int32_t ctl_status)
+void ib2::Dtc::check(const int32_t ctl_status)
 {
     auto std_ax(moave_daccx_->s(move_unbiased));
     auto std_ay(moave_daccy_->s(move_unbiased));
@@ -280,7 +280,7 @@ void Dtc::check(const int32_t ctl_status)
 
 //------------------------------------------------------------------------------
 // 航法暦
-void Dtc::history(const ib2_interfaces::msg::Navigation nav_stamp)
+void ib2::Dtc::history(const ib2_interfaces::msg::Navigation nav_stamp)
 {
     static bool init = true;
 
@@ -324,7 +324,7 @@ void Dtc::history(const ib2_interfaces::msg::Navigation nav_stamp)
 
 //------------------------------------------------------------------------------
 // 標準偏差の立ち上がり判定
-bool Dtc::sigmaAscent(const double sigma_dacc,const double sigma_drate,
+bool ib2::Dtc::sigmaAscent(const double sigma_dacc,const double sigma_drate,
   const int sigma_jud_num)
 {
     // 標準偏差 > 閾値　判定
@@ -350,7 +350,7 @@ bool Dtc::sigmaAscent(const double sigma_dacc,const double sigma_drate,
 
 //------------------------------------------------------------------------------
 // 衝突・クルーリリース判定
-void Dtc::colrelCheck()
+void ib2::Dtc::colrelCheck()
 {
     // 標準偏差の下降チェック
     if(std_a_ < sigma_end_dacc_ && std_w_ < sigma_end_drate_) 
@@ -384,7 +384,7 @@ void Dtc::colrelCheck()
 
 //------------------------------------------------------------------------------
 // クルーのキャプチャ判定
-bool Dtc::crewCapCheck()
+bool ib2::Dtc::crewCapCheck()
 {
     from_sigup_counter_++;
     if(from_sigup_counter_ + sigma_start_jud_num_ >= colcap_id_jud_num_)
@@ -399,7 +399,7 @@ bool Dtc::crewCapCheck()
 
 //------------------------------------------------------------------------------
 // ドッキング判定
-void Dtc::dockingCheck()
+void ib2::Dtc::dockingCheck()
 {
     // 位置誤差
     auto dr(rc_ - docking_pos_);
@@ -433,7 +433,7 @@ void Dtc::dockingCheck()
 
 //------------------------------------------------------------------------------
 // ステータスの取得
-Dtc::DETECT Dtc::status() const
+ib2::Dtc::DETECT ib2::Dtc::status() const
 {
     return status_;
 }

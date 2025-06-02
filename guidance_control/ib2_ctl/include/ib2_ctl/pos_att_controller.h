@@ -16,19 +16,19 @@ namespace ib2
     /**
      * @brief 位置制御則クラス
      */
-    class PosAttController
+    class PosAttController : public rclcpp::Node
     {
         //----------------------------------------------------------------------
         // コンストラクタ/デストラクタ
     public:
         /** デフォルトコンストラクタ */
-        PosAttController();
+        // PosAttController();
         
-        /** 値によるコンストラクタ
-         *@param [in] pos 位置制御パラメータ
-         *@param [in] att 姿勢制御パラメータ
-         */
-        PosAttController(const PosController& pos, const AttController& att);
+        /** rosparamによるコンストラクタ */
+        explicit PosAttController(const rclcpp::NodeOptions& options);
+
+        /** 値によるコンストラクタ */
+        // PosAttController(const PosController& pos, const AttController& att);
         
         /** デストラクタ */
         ~PosAttController();
@@ -37,16 +37,16 @@ namespace ib2
         // コピー/ムーブ
     public:
         /** コピーコンストラクタ. */
-        PosAttController(const PosAttController&);
+        PosAttController(const PosAttController&) = delete;
         
         /** コピー代入演算子. */
-        PosAttController& operator=(const PosAttController&);
+        PosAttController& operator=(const PosAttController&) = delete;
         
         /** ムーブコンストラクタ. */
-        PosAttController(PosAttController&&);
+        PosAttController(PosAttController&&) = default;
         
         /** ムーブ代入演算子. */
-        PosAttController& operator=(PosAttController&&);
+        PosAttController& operator=(PosAttController&&) = default;
         
         //----------------------------------------------------------------------
         // 操作(Setter)
@@ -54,12 +54,12 @@ namespace ib2
         /** 位置制御パラメータの設定
          * @param [in] p 位置制御パラメータ
          */
-        bool setConfigPos(const PosController& pos);
+        // bool setConfigPos(const PosController& pos);
         
         /** 姿勢制御パラメータの設定
          * @param [in] p 姿勢制御パラメータ
          */
-        bool setConfigAtt(const AttController& att);
+        // bool setConfigAtt(const AttController& att);
         
         /** 位置制御積分量のクリア */
         void flash();

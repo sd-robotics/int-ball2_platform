@@ -53,15 +53,15 @@ namespace ib2
         // コンストラクタ/デストラクタ
     public:
         /** デフォルトコンストラクタ */
-        PosAttProfiler();
+        // PosAttProfiler();
 
         /** rosparamによるコンストラクタ */
         explicit PosAttProfiler(const rclcpp::NodeOptions& options);
 
         /** 値によるコンストラクタ */
-        PosAttProfiler
-        (const PosProfiler& pos, const AttProfiler& att,
-         const ThrustAllocator& thr);
+        // PosAttProfiler
+        // (const PosProfiler& pos, const AttProfiler& att,
+        //  const ThrustAllocator& thr);
 
         /** デストラクタ */
         ~PosAttProfiler();
@@ -70,16 +70,16 @@ namespace ib2
         // コピー/ムーブ
     public:
         /** コピーコンストラクタ. */
-        PosAttProfiler(const PosAttProfiler&);
+        PosAttProfiler(const PosAttProfiler&) = delete;
 
         /** コピー代入演算子. */
-        PosAttProfiler& operator=(const PosAttProfiler&);
+        PosAttProfiler& operator=(const PosAttProfiler&) = delete;
 
         /** ムーブコンストラクタ. */
-        PosAttProfiler(PosAttProfiler&&);
+        PosAttProfiler(PosAttProfiler&&) = delete;
 
         /** ムーブ代入演算子. */
-        PosAttProfiler& operator=(PosAttProfiler&&);
+        PosAttProfiler& operator=(PosAttProfiler&&) = delete;
 
         //----------------------------------------------------------------------
         // 操作(Setter)
@@ -89,22 +89,22 @@ namespace ib2
          * @retval true 設定成功
          * @retval false 設定失敗
          */
-        bool setMember(const rclcpp::NodeOptions& options);
+        // bool setMember(const rclcpp::NodeOptions& options);
     
         /** 位置誘導プロファイルパラメータ設定
          * @param [in] p 設定パラメータ
          */
-        bool setConfigPos(const PosProfiler& p);
+        // bool setConfigPos(const PosProfiler& p);
 
         /** 姿勢誘導プロファイルパラメータ設定
          * @param [in] p 設定パラメータ
          */
-        bool setConfigAtt(const AttProfiler& p);
+        // bool setConfigAtt(const AttProfiler& p);
 
         /** 推力配分パラメータ設定
          * @param [in] thr 設定パラメータ
          */
-        bool setConfigThr(const ThrustAllocator& thr);
+        // bool setConfigThr(const ThrustAllocator& thr);
 
         /** 位置姿勢誘導プロファイル作成（現在位置姿勢で静止）
          * @param [in] nav 航法値

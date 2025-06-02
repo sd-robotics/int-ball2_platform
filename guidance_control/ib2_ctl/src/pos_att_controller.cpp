@@ -4,15 +4,23 @@
 
 //------------------------------------------------------------------------------
 // デフォルトコンストラクタ
-ib2::PosAttController::PosAttController() = default;
+// ib2::PosAttController::PosAttController() = default;
+
+//------------------------------------------------------------------------------
+// rosparamによるコンストラクタ
+ib2::PosAttController::PosAttController(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
+    rclcpp::Node("pos_att_controller", options),
+    seq_(0), pos_(options), att_(options)
+{
+}
 
 //------------------------------------------------------------------------------
 // 値によるコンストラクタ
-ib2::PosAttController::PosAttController
-(const PosController& pos, const AttController& att) :
-seq_(0), pos_(pos), att_(att)
-{
-}
+// ib2::PosAttController::PosAttController
+// (const PosController& pos, const AttController& att) :
+// seq_(0), pos_(pos), att_(att)
+// {
+// }
 
 //------------------------------------------------------------------------------
 // デストラクタ
@@ -20,37 +28,37 @@ ib2::PosAttController::~PosAttController() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::PosAttController::PosAttController(const PosAttController&) = default;
+// ib2::PosAttController::PosAttController(const PosAttController&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::PosAttController&
-ib2::PosAttController::operator=(const PosAttController&) = default;
+// ib2::PosAttController&
+// ib2::PosAttController::operator=(const PosAttController&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::PosAttController::PosAttController(PosAttController&&) = default;
+// ib2::PosAttController::PosAttController(PosAttController&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::PosAttController&
-ib2::PosAttController::operator=(PosAttController&&) = default;
+// ib2::PosAttController&
+// ib2::PosAttController::operator=(PosAttController&&) = default;
 
 //------------------------------------------------------------------------------
 // 位置制御パラメータの設定
-bool ib2::PosAttController::setConfigPos(const PosController& pos)
-{
-    pos_ = pos;
-    return true;
-}
+// bool ib2::PosAttController::setConfigPos(const PosController& pos)
+// {
+//     pos_ = pos;
+//     return true;
+// }
 
 //------------------------------------------------------------------------------
 // 姿勢制御パラメータの設定
-bool ib2::PosAttController::setConfigAtt(const AttController& att)
-{
-    att_ = att;
-    return true;
-}
+// bool ib2::PosAttController::setConfigAtt(const AttController& att)
+// {
+//     att_ = att;
+//     return true;
+// }
 
 //------------------------------------------------------------------------------
 // 積分量のクリア

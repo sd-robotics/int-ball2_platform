@@ -36,16 +36,16 @@ public:
     // コピー/ムーブ
 public:
     /** コピーコンストラクタ. */
-    CtlElements(const CtlElements&);
+    CtlElements(const CtlElements&) = delete;
 
     /** コピー代入演算子. */
-    CtlElements& operator=(const CtlElements&);
+    CtlElements& operator=(const CtlElements&) = delete;
 
     /** ムーブコンストラクタ. */
-    CtlElements(CtlElements&&);
+    CtlElements(CtlElements&&) = default;
 
     /** ムーブ代入演算子. */
-    CtlElements& operator=(CtlElements&&);
+    CtlElements& operator=(CtlElements&&) = default;
 
     //--------------------------------------------------------------------------
     // 属性(Getter)

@@ -12,6 +12,8 @@
 
 #include "ib2_ctl_common/MovingAverage.h"
 
+namespace ib2
+{
 /**
 * @brief 検知クラス
 */
@@ -233,4 +235,7 @@ private:
     /** 角速度差分各成分の標準偏差のRSS */
     double std_w_;
 };
+
+} // namespace ib2
+
 // End Of File -----------------------------------------------------------------

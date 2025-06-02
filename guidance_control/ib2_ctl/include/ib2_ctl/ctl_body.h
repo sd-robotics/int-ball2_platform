@@ -28,16 +28,16 @@ namespace ib2
         // コピー/ムーブ
     public:
         /** コピーコンストラクタ. */
-        CtlBody(const CtlBody&);
+        CtlBody(const CtlBody&) = delete;
 
         /** コピー代入演算子. */
-        CtlBody& operator=(const CtlBody&);
+        CtlBody& operator=(const CtlBody&) = delete;
 
         /** ムーブコンストラクタ. */
-        CtlBody(CtlBody&&);
+        CtlBody(CtlBody&&) = delete;
 
         /** ムーブ代入演算子. */
-        CtlBody& operator=(CtlBody&&);
+        CtlBody& operator=(CtlBody&&) = delete;
 
         //----------------------------------------------------------------------
         // 属性(Getter)

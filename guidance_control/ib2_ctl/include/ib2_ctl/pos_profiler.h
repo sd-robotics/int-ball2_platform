@@ -28,16 +28,16 @@ namespace ib2
         // コピー/ムーブ
     public:
         /** コピーコンストラクタ. */
-        PosProfiler(const PosProfiler&);
+        PosProfiler(const PosProfiler&) = delete;
 
         /** コピー代入演算子. */
-        PosProfiler& operator=(const PosProfiler&);
+        PosProfiler& operator=(const PosProfiler&) = delete;
 
         /** ムーブコンストラクタ. */
-        PosProfiler(PosProfiler&&);
+        PosProfiler(PosProfiler&&) = delete;
 
         /** ムーブ代入演算子. */
-        PosProfiler& operator=(PosProfiler&&);
+        PosProfiler& operator=(PosProfiler&&) = delete;
 
         //----------------------------------------------------------------------
         // 属性(Getter)

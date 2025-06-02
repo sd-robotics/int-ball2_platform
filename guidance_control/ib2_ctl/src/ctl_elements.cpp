@@ -34,19 +34,19 @@ CtlElements::~CtlElements() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-CtlElements::CtlElements(const CtlElements&) = default;
+// CtlElements::CtlElements(const CtlElements&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-CtlElements& CtlElements::operator=(const CtlElements&) = default;
+// CtlElements& CtlElements::operator=(const CtlElements&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-CtlElements::CtlElements(CtlElements&&) = default;
+// CtlElements::CtlElements(CtlElements&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-CtlElements& CtlElements::operator=(CtlElements&&) = default;
+// CtlElements& CtlElements::operator=(CtlElements&&) = default;
 
 //------------------------------------------------------------------------------
 // ROS時刻の参照

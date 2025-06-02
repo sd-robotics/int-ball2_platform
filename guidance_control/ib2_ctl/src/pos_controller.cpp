@@ -78,20 +78,20 @@ ib2::PosController::~PosController() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::PosController::PosController(const PosController&) = default;
+// ib2::PosController::PosController(const PosController&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::PosController&
-ib2::PosController::operator=(const PosController&) = default;
+// ib2::PosController&
+// ib2::PosController::operator=(const PosController&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::PosController::PosController(PosController&&) = default;
+// ib2::PosController::PosController(PosController&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::PosController& ib2::PosController::operator=(PosController&&) = default;
+// ib2::PosController& ib2::PosController::operator=(PosController&&) = default;
 
 //------------------------------------------------------------------------------
 // 積分量のクリア

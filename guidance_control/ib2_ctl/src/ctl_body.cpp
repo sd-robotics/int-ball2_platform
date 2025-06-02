@@ -88,19 +88,19 @@ ib2::CtlBody::~CtlBody() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::CtlBody::CtlBody(const CtlBody&) = default;
+// ib2::CtlBody::CtlBody(const CtlBody&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::CtlBody& ib2::CtlBody::operator=(const CtlBody&) = default;
+// ib2::CtlBody& ib2::CtlBody::operator=(const CtlBody&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::CtlBody::CtlBody(CtlBody&&) = default;
+// ib2::CtlBody::CtlBody(CtlBody&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::CtlBody& ib2::CtlBody::operator=(CtlBody&&) = default;
+// ib2::CtlBody& ib2::CtlBody::operator=(CtlBody&&) = default;
 
 //------------------------------------------------------------------------------
 //  機体質量の取得

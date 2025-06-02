@@ -144,22 +144,22 @@ ib2::AttProfiler::~AttProfiler() = default;
 
 //------------------------------------------------------------------------------
 // コピーコンストラクタ
-ib2::AttProfiler::AttProfiler
-(const AttProfiler&) = default;
+// ib2::AttProfiler::AttProfiler
+// (const AttProfiler&) = default;
 
 //------------------------------------------------------------------------------
 // コピー代入演算子
-ib2::AttProfiler&
-ib2::AttProfiler::operator=(const AttProfiler&) = default;
+// ib2::AttProfiler&
+// ib2::AttProfiler::operator=(const AttProfiler&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブコンストラクタ
-ib2::AttProfiler::AttProfiler(AttProfiler&&) = default;
+// ib2::AttProfiler::AttProfiler(AttProfiler&&) = default;
 
 //------------------------------------------------------------------------------
 // ムーブ代入演算子
-ib2::AttProfiler&
-ib2::AttProfiler::operator=(AttProfiler&&) = default;
+// ib2::AttProfiler&
+// ib2::AttProfiler::operator=(AttProfiler&&) = default;
 
 //------------------------------------------------------------------------------
 //  姿勢プロファイル最大トルクの取得
