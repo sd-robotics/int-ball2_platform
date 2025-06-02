@@ -33,19 +33,6 @@ add_library(${PROJECT_NAME} SHARED
   src/thrust_allocator.cpp
 )
 
-## Add cmake target dependencies of the library
-## as an example, code may need to be generated before libraries
-## either from message generation or dynamic reconfigure
-add_dependencies(${PROJECT_NAME}_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Declare a C++ executable
-## With catkin_make all packages are built within a single CMake context
-## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}
-  src/fsm.cpp
-  src/thrust_allocator.cpp
-)
-
 rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "ib2::Fsm"
   EXECUTABLE ib2_fsm_node)
@@ -59,15 +46,26 @@ ament_target_dependencies(${PROJECT_NAME}
   "ib2_ctl_common"
   "ib2_ctl"
 )
+target_link_libraries(${PROJECT_NAME}
+  ${EIGEN3_LIBRARIES}
+)
+
+# Export include directories and libraries
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+ament_export_dependencies(
+  "rclcpp"
+  "Eigen3"
+)
+
+#############
+## Install ##
+#############
 
 install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
-
-#############
-## Install ##
-#############
 
 install(DIRECTORY
   include/${PROJECT_NAME}
@@ -75,7 +73,6 @@ install(DIRECTORY
 )
 
 install(DIRECTORY
-  config
   launch DESTINATION share/${PROJECT_NAME}
 )
 
