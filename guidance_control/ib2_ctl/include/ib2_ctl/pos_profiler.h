@@ -109,6 +109,6 @@ namespace ib2
         /** RDP(Ready to Dock Point)位置[m] */
         Eigen::Vector3d rdp_;
     };
-}
+} // namespace ib2
 
 // End Of File -----------------------------------------------------------------
