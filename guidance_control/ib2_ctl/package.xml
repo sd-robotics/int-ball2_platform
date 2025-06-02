@@ -12,8 +12,9 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>rclcpp_components</depend>
-  <depend>example_interfaces</depend>
   <depend>geometry_msgs</depend>
+  <depend>example_interfaces</depend>
+  <depend>builtin_interfaces</depend>
   <depend>ib2_interfaces</depend>
   <depend>ib2_ctl_common</depend>
   <depend>eigen</depend>
