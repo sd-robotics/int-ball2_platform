@@ -203,7 +203,8 @@ public:
      */
     bool updateCallback(
         const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
-        std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res);
+        std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res
+    );
 
     /** 航法値のサブスクライバのコールバック関数
      * @param [in] nav_stamp 航法値
