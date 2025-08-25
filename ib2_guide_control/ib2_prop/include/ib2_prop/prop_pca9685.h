@@ -1,12 +1,13 @@
 
 #pragma once
+
 #include <iostream>
 #include <vector>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
-#include "prop/prop_common.h"
+#include "ib2_prop/prop_common.h"
 
 #define EPS                1.0E-10
 #define REG_MODE1          0x00			// Resigter Number of Mode register 1
@@ -33,6 +34,9 @@
 #define LED_ON_HIGH        1			// ON  Timing(Byte 1)
 #define LED_OFF_LOW        2			// OFF Timing(Byte 2)
 #define LED_OFF_HIGH       3			// OFF Timing(Byte 3)
+
+namespace ib2
+{
 
 /**
 * @brief 推進機能ノード　PWM制御信号送信クラス
@@ -113,5 +117,7 @@ private:
 	bool                             is_file_open_;
 	
 };
+
+} // namespace ib2
 
 // End Of File -----------------------------------------------------------------

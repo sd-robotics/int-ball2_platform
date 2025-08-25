@@ -1,23 +1,21 @@
 
-#include "prop/prop_pca9685.h"
+#include "ib2_prop/prop_pca9685.h"
 
 
 //------------------------------------------------------------------------------
 // コンストラクタ
-PropPCA9685::PropPCA9685():
-is_file_open_(false)
-{}
+ib2::PropPCA9685::PropPCA9685():is_file_open_(false){}
 
 //------------------------------------------------------------------------------
 // デストラクタ
-PropPCA9685::~PropPCA9685()
+ib2::PropPCA9685::~PropPCA9685()
 {
     shutdown();
 }
 
 //------------------------------------------------------------------------------
 // I2C通信初期化
-int PropPCA9685::initialize(const char*& file_name, const int& addr, const unsigned short& freq)
+int ib2::PropPCA9685::initialize(const char*& file_name, const int& addr, const unsigned short& freq)
 {
 #ifdef WITH_PCA9685
 
@@ -49,7 +47,7 @@ int PropPCA9685::initialize(const char*& file_name, const int& addr, const unsig
 
 //------------------------------------------------------------------------------
 // I2C 1Byteデータ送信
-bool PropPCA9685::i2cWrite(const unsigned char& reg, const unsigned char& data)
+bool ib2::PropPCA9685::i2cWrite(const unsigned char& reg, const unsigned char& data)
 {
 #ifdef WITH_PCA9685
 
@@ -69,7 +67,7 @@ bool PropPCA9685::i2cWrite(const unsigned char& reg, const unsigned char& data)
 
 //------------------------------------------------------------------------------
 // PWM周波数設定
-void PropPCA9685::setFrequency(const unsigned short& frequency)
+void ib2::PropPCA9685::setFrequency(const unsigned short& frequency)
 {
     // PWM frequency PRE_SCALE
     unsigned char  pre_scale = DEFAULT_PRE_SCALE;
@@ -86,7 +84,7 @@ void PropPCA9685::setFrequency(const unsigned short& frequency)
 
 //------------------------------------------------------------------------------
 // デューティ比からPWM制御信号へ変換する
-void PropPCA9685::convertDutyCommand(const float& duty, unsigned char *command)
+void ib2::PropPCA9685::convertDutyCommand(const float& duty, unsigned char *command)
 {
     float          ld  = limitter(duty, DUTY_MIN, DUTY_MAX);
     int            val = static_cast<int>(ld * (RESOLUTION - 1) + 0.5 + EPS);
@@ -101,7 +99,7 @@ void PropPCA9685::convertDutyCommand(const float& duty, unsigned char *command)
 
 //------------------------------------------------------------------------------
 // PWM制御ボードにPWM制御信号を送信する
-void PropPCA9685::setPWM(const std::vector<float>& duty)
+void ib2::PropPCA9685::setPWM(const std::vector<float>& duty)
 {
     int size = (duty.size() <= CH_MAX)? duty.size() : CH_MAX;
 
@@ -124,7 +122,7 @@ void PropPCA9685::setPWM(const std::vector<float>& duty)
 
 //------------------------------------------------------------------------------
 // I2C通信停止
-void PropPCA9685::shutdown()
+void ib2::PropPCA9685::shutdown()
 {
     if(is_file_open_)
     {

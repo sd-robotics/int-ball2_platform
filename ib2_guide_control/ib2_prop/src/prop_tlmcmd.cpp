@@ -1,23 +1,16 @@
 
-#include "prop/prop_tlmcmd.h"
+#include "ib2_prop/prop_tlmcmd.h"
 
 //------------------------------------------------------------------------------
 // コンストラクタ
-PropTlmCmd::PropTlmCmd()  = default;
-
-//------------------------------------------------------------------------------
-// デストラクタ
-PropTlmCmd::~PropTlmCmd() = default;
-
-//------------------------------------------------------------------------------
-// テレメトリ・コマンド機能初期化
-void PropTlmCmd::initialize(const ros::NodeHandle& nh, const int32_t& fan_num) 
+ib2::PropTlmCmd::PropTlmCmd(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
+	rclcpp::Node("prop_tlmcmd", options)
 {
-	nh_             = nh;
-	fan_num_        = fan_num;
+	this->declare_parameter<int32_t>("/prop/fan_number", 0);
+	fan_num_ = this->get_parameter("/prop/fan_number").as_int();
 
 	// Duty初期化
-	fan_duty_.layout.dim.push_back(std_msgs::MultiArrayDimension());
+	fan_duty_.layout.dim.push_back(example_interfaces::msg::MultiArrayDimension());
 	fan_duty_.layout.dim[0].size   = fan_num_;
 	fan_duty_.layout.dim[0].stride = 1;
 	fan_duty_.layout.dim[0].label  = "";
@@ -25,30 +18,39 @@ void PropTlmCmd::initialize(const ros::NodeHandle& nh, const int32_t& fan_num)
 	fan_duty_.data.resize(fan_num_, 0.0);
 
 	// ファン駆動状態メッセージ初期化
-	fan_status_.duty.layout.dim.push_back(std_msgs::MultiArrayDimension());
+	fan_status_.duty.layout.dim.push_back(example_interfaces::msg::MultiArrayDimension());
 	fan_status_.duty.data.resize(fan_num_, 0.0);
-	initFanStatus(ib2_msgs::PowerStatus::ON);
+	initFanStatus(ib2_interfaces::msg::PowerStatus::ON);
 	
 	// ファン駆動デューティ比サブスクライバ
-	sub_fan_duty_          = nh_.subscribe(TOPIC_CTL_DUTY, 1, &PropTlmCmd::subFanDuty, this);
+	sub_fan_duty_ = this->create_subscription<example_interfaces::msg::Float64MultiArray>(
+		TOPIC_CTL_DUTY, 1,
+		std::bind(&ib2::PropTlmCmd::subFanDuty, this, std::placeholders::_1));
 
 	// ファン駆動状態パブリッシャ
-	pub_fan_status_        = nh_.advertise<ib2_msgs::FanStatus>(TOPIC_PROP_STATUS, 1);
+	pub_fan_status_ = this->create_publisher<ib2_interfaces::msg::FanStatus>(TOPIC_PROP_STATUS, 1);
 
 	// ファン駆動モード設定サービスサーバ
-	switch_power_server_   = nh_.advertiseService(SERVICE_SWITCH_POWER, &PropTlmCmd::switchPower, this);
+	switch_power_server_ = this->create_service<ib2_interfaces::srv::SwitchPower>(
+		SERVICE_SWITCH_POWER,
+		std::bind(&ib2::PropTlmCmd::switchPower, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 //------------------------------------------------------------------------------
+// デストラクタ
+ib2::PropTlmCmd::~PropTlmCmd() = default;
+
+
+//------------------------------------------------------------------------------
 // ファン駆動デューティ比をサブスクライブ
-void PropTlmCmd::subFanDuty(const std_msgs::Float64MultiArray& msg)
+void ib2::PropTlmCmd::subFanDuty(const example_interfaces::msg::Float64MultiArray& msg)
 {
 	// データサイズチェック
 	int size = msg.data.size();
 	if(size != fan_num_)
 	{
-		ROS_ERROR("Prop Node Subscribed Invalid Size(%d) of Fan Duty", size);
-		initFanStatus(ib2_msgs::PowerStatus::UNKNOWN);
+		RCLCPP_ERROR(this->get_logger(), "Prop Node Subscribed Invalid Size(%d) of Fan Duty", size);
+		initFanStatus(ib2_interfaces::msg::PowerStatus::UNKNOWN);
 		return;
 	}
 
@@ -59,12 +61,12 @@ void PropTlmCmd::subFanDuty(const std_msgs::Float64MultiArray& msg)
 
 //------------------------------------------------------------------------------
 // ファン駆動状態メッセージ生成
-void PropTlmCmd::generateFanStatus()
+void ib2::PropTlmCmd::generateFanStatus()
 {
 	initFanStatus(fan_status_.current_power.status);
 
 	// 推進機能が停止の場合は、デューティ比 = 0とする
-	if(fan_status_.current_power.status != ib2_msgs::PowerStatus::ON)
+	if(fan_status_.current_power.status != ib2_interfaces::msg::PowerStatus::ON)
 	{
 		return;
 	}
@@ -78,29 +80,29 @@ void PropTlmCmd::generateFanStatus()
 
 //------------------------------------------------------------------------------
 // ファン駆動状態をパブリッシュ
-void PropTlmCmd::pubFanStatus(const ros::TimerEvent&)
+void ib2::PropTlmCmd::pubFanStatus()
 {
-	pub_fan_status_.publish(fan_status_);
+	pub_fan_status_->publish(fan_status_);
 }
 
 //------------------------------------------------------------------------------
 // ファン駆動状態(異常停止中)をパブリッシュ
-void PropTlmCmd::pubErrorFanStatus(const ros::TimerEvent& ev)
+void ib2::PropTlmCmd::pubErrorFanStatus()
 {
-	initFanStatus(ib2_msgs::PowerStatus::UNKNOWN);
-	pubFanStatus(ev);
+	initFanStatus(ib2_interfaces::msg::PowerStatus::UNKNOWN);
+	pubFanStatus();
 }
 
 //------------------------------------------------------------------------------
 // 推進機能起動/停止
-bool PropTlmCmd::switchPower
-(ib2_msgs::SwitchPower::Request&   req, 
- ib2_msgs::SwitchPower::Response&  res)
+bool ib2::PropTlmCmd::switchPower(
+        const std::shared_ptr<ib2_interfaces::srv::SwitchPower::Request> req,
+        std::shared_ptr<ib2_interfaces::srv::SwitchPower::Response> res)
 {
-	fan_status_.current_power.status = req.power.status;
-	res.current_power.status         = fan_status_.current_power.status;
+	fan_status_.current_power.status = req->power.status;
+	res->current_power.status  = fan_status_.current_power.status;
 
-	if(req.power.status != ib2_msgs::PowerStatus::ON)
+	if(req->power.status != ib2_interfaces::msg::PowerStatus::ON)
 	{
 		for(int i = 0; i < fan_num_; i++)
 		{
@@ -113,7 +115,7 @@ bool PropTlmCmd::switchPower
 
 //------------------------------------------------------------------------------
 // ファン駆動デューティ比のgetter
-std::vector<float> PropTlmCmd::getFanDuty()
+std::vector<float> ib2::PropTlmCmd::getFanDuty()
 {
 	std::vector<float> duty(fan_num_, 0.0);
 
@@ -130,10 +132,9 @@ std::vector<float> PropTlmCmd::getFanDuty()
 
 //------------------------------------------------------------------------------
 // ファン駆動状態初期化
-void PropTlmCmd::initFanStatus(const uint8_t& status)
+void ib2::PropTlmCmd::initFanStatus(const uint8_t& status)
 {
-	fan_status_.header.seq                 = (fan_status_.header.seq + 1) % UINT32_MAX;
-	fan_status_.header.stamp               = ros::Time::now();
+	fan_status_.header.stamp               = this->get_clock()->now();
 	fan_status_.header.frame_id            = "";
 
 	fan_status_.duty.layout.dim[0].size    = fan_num_;
@@ -151,25 +152,25 @@ void PropTlmCmd::initFanStatus(const uint8_t& status)
 
 //------------------------------------------------------------------------------
 // テレメトリ・コマンド機能停止
-void PropTlmCmd::shutdown()
+void ib2::PropTlmCmd::shutdown()
 {
 	if(sub_fan_duty_){
 		std::cout << " -> Shutdown Fan Duty Subscriber"           << std::endl;
-		sub_fan_duty_.shutdown();
+		// sub_fan_duty_.reset();
 	}
 
 	if(pub_fan_status_){
 		std::cout << " -> Shutdown Fan Status Publisher"          << std::endl;
-		pub_fan_status_.shutdown();
+		// pub_fan_status_.reset();
 	}
 
 	if(switch_power_server_)
 	{
 		std::cout << " -> Shutdown Switch Power Service Server" << std::endl;
-		switch_power_server_.shutdown();
+		// switch_power_server_.reset();
 	}
 
-	initFanStatus(ib2_msgs::PowerStatus::UNKNOWN);
+	initFanStatus(ib2_interfaces::msg::PowerStatus::UNKNOWN);
 }
 
 // End Of File -----------------------------------------------------------------

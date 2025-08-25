@@ -1,12 +1,13 @@
 
 #pragma once
-#include <ros/ros.h>
-#include "prop/prop_common.h"
-#include <std_msgs/Float64MultiArray.h>
-#include <std_msgs/MultiArrayDimension.h>
-#include "ib2_msgs/FanStatus.h"
-#include "ib2_msgs/SwitchPower.h"
-#include "ib2_msgs/PowerStatus.h"
+
+#include <rclcpp/rclcpp.hpp>
+#include "ib2_prop/prop_common.h"
+#include <example_interfaces/msg/float64_multi_array.hpp>
+#include <example_interfaces/msg/multi_array_dimension.hpp>
+#include "ib2_interfaces/msg/fan_status.hpp"
+#include "ib2_interfaces/msg/power_status.hpp"
+#include "ib2_interfaces/srv/switch_power.hpp"
 
 #define TOPIC_CTL_DUTY               "/ctl/duty"
 #define TOPIC_PROP_STATUS            "/prop/status"
@@ -14,16 +15,19 @@
 #define DUTY_MIN                     0.F			// 最小ファン駆動デューティ比[-]
 #define DUTY_MAX                     1.F			// 最大ファン駆動デューティ比[-]
 
+namespace ib2
+{
+
 /**
 * @brief 推進機能ノード　テレメトリ・コマンドクラス
 */
-class PropTlmCmd
+class PropTlmCmd : public rclcpp::Node
 {
 	//----------------------------------------------------------------------
 	// コンストラクタ/デストラクタ
 public:
 	/** コンストラクタ */
-	PropTlmCmd();
+	PropTlmCmd(const rclcpp::NodeOptions& options);
 
 	/** デストラクタ */
 	~PropTlmCmd();
@@ -50,21 +54,13 @@ private:
 	//----------------------------------------------------------------------
 	// 実装
 public:
-	/** テレメトリ・コマンド機能初期化
-	 * @param [in]      nh           ROSノードハンドラ
-	 * @param [in]      fanNum       ファン数
-	 */
-	void initialize(const ros::NodeHandle& nh, const int32_t& fan_num);
-
 	/** ファン駆動状態をパブリッシュ
-	 * @param [in]      ev           ROS Timer Event
 	 */
-	void pubFanStatus(const ros::TimerEvent& ev);
+	void pubFanStatus();
 
 	/** ファン駆動状態をパブリッシュ(異常時)
-	 * @param [in]      ev           ROS Timer Event
 	 */
-	void pubErrorFanStatus(const ros::TimerEvent& ev);
+	void pubErrorFanStatus();
 
 	/** ファン駆動デューティ比のgetter
 	 * @return                       ファン駆動デューティ比
@@ -80,7 +76,7 @@ private:
 	/** ファン駆動デューティ比をサブスクライブ
 	 * @param [in]      msg           ファン駆動デューティ比
 	 */
-	void subFanDuty(const std_msgs::Float64MultiArray& msg);
+	void subFanDuty(const example_interfaces::msg::Float64MultiArray& msg);
 
 	/** ファン駆動状態初期化
 	 * @param [in]      status        推進機能起動/停止ステータス
@@ -97,33 +93,32 @@ private:
 	 * @retval                     false            設定失敗
 	 */
 	bool switchPower(
-		ib2_msgs::SwitchPower::Request&  req,
-		ib2_msgs::SwitchPower::Response& res
+        const std::shared_ptr<ib2_interfaces::srv::SwitchPower::Request> req,
+        std::shared_ptr<ib2_interfaces::srv::SwitchPower::Response> res
 	);
 
 	//----------------------------------------------------------------------
 	// メンバ変数
 private:
-	/** ROSノードハンドラ */
-	ros::NodeHandle                  nh_;
-
 	/** ファンデューティ比(誘導制御ノード)　サブスクライバ */
-	ros::Subscriber                  sub_fan_duty_;
+	rclcpp::Subscription<example_interfaces::msg::Float64MultiArray>::SharedPtr sub_fan_duty_;
 
 	/** 推進機能ノードのファン駆動状態パブリッシャ */
-	ros::Publisher                   pub_fan_status_;
+	rclcpp::Publisher<ib2_interfaces::msg::FanStatus>::SharedPtr pub_fan_status_;
 
 	/** 推進機能起動/停止サービスサーバ */
-	ros::ServiceServer               switch_power_server_;
+    rclcpp::Service<ib2_interfaces::srv::SwitchPower>::SharedPtr switch_power_server_;
 
 	/** ファン数 */
 	int32_t                          fan_num_;
 
 	/** ファン駆動デューティ比メッセージ */
-	std_msgs::Float64MultiArray      fan_duty_;
+	example_interfaces::msg::Float64MultiArray fan_duty_;
 
 	/** ファン駆動状態メッセージ */
-	ib2_msgs::FanStatus              fan_status_;
+	ib2_interfaces::msg::FanStatus	 fan_status_;
 };
+
+}  // namespace ib2
 
 // End Of File -----------------------------------------------------------------

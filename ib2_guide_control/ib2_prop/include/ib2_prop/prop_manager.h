@@ -1,24 +1,31 @@
 
 #pragma once
-#include <ros/ros.h>
+
 #include <iostream>
-#include "prop/prop_tlmcmd.h"
-#include "prop/prop_pca9685.h"
-#include "ib2_msgs/UpdateParameter.h"
+#include <chrono>
+
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
+#include "ib2_prop/prop_tlmcmd.h"
+#include "ib2_prop/prop_pca9685.h"
+#include "ib2_interfaces/srv/update_parameter.hpp"
 
 #define   SERVICE_UPDATE_PARAMS       "/prop/update_params"
+#define   FAN_NUM     	8
+#define   PUB_DURATION  1.0
+#define   MON_DURATION  0.01
+#define   FREQ      	1000
 
-class PropManager
+namespace ib2
 {
-	//----------------------------------------------------------------------
-	// コンストラクタ/デストラクタ
-private:
-	/** デフォルトコンストラクタ */
-	PropManager() = delete;
 
+class PropManager : public rclcpp::Node
+{
+    //----------------------------------------------------------------------
+    // コンストラクタ/デストラクタ
 public:
 	/** コンストラクタ */
-	explicit PropManager(const ros::NodeHandle& nh);
+	PropManager(const rclcpp::NodeOptions& options);
 
 	/** デストラクタ */
 	~PropManager();
@@ -60,9 +67,8 @@ private:
     int getParameter();
 
 	/** PWM制御ボード(PCA9685)にPWM信号を送信
-	 * @param [in]                 ev       ROS Timer Event
 	 */
-	void sendPWM(const ros::TimerEvent& ev);
+	void sendPWM();
 
 	/** 推進機能ノード停止 */
 	void shutdown();
@@ -73,33 +79,31 @@ private:
 	 * @retval                     true                  更新成功
 	 * @retval                     false                 更新失敗
 	 */
-	bool updateParams
-	(ib2_msgs::UpdateParameter::Request&,
-	 ib2_msgs::UpdateParameter::Response& res);
+	bool updateParams(
+        const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
+        std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res);
 
 	//----------------------------------------------------------------------
 	// メンバ変数
 private:
-	/** ROSノードハンドラ */
-	ros::NodeHandle                  nh_;
 
 	/** ファン駆動状態パブリッシュ用　ROS Timer */
-	ros::Timer                       fan_status_timer_;
+	rclcpp::TimerBase::SharedPtr  	 fan_status_timer_;
 
 	/** PWM制御信号送信用　ROS Timer */
-	ros::Timer                       pwm_control_timer_;
+	rclcpp::TimerBase::SharedPtr  	 pwm_control_timer_;
 
 	/** パラメータ更新サービスサーバ */
-	ros::ServiceServer               update_params_server_;
+	rclcpp::Service<ib2_interfaces::srv::UpdateParameter>::SharedPtr update_params_server_;
 
     /* ファン数 */
     int32_t                          fan_num_;
 
     /** テレメトリ・コマンド　オブジェクト */
-    PropTlmCmd                       prop_tlm_cmd_;
+    ib2::PropTlmCmd                  prop_tlm_cmd_;
 
     /** PWM制御信号送信　オブジェクト */
-	PropPCA9685                      prop_pca9685_;
+	ib2::PropPCA9685                 prop_pca9685_;
 
     /** デバイスファイル名(PCA9685) */
     std::string                      device_file_name_;
@@ -111,10 +115,10 @@ private:
     unsigned short                   pwm_frequency_;
 
     /** ファンステータスのパブリッシュ周期[s] */
-    double                           pub_fan_status_duration_;
+    rclcpp::Duration                 pub_fan_status_duration_;
 
 	/** I2C通信周期[s] */
-    double                           i2c_comm_duration_;
+    rclcpp::Duration           		 i2c_comm_duration_;
 
     /** 初期化エラー識別子 */
     int                              init_error_id_;
@@ -122,4 +126,10 @@ private:
 	/** ファンデューティ */
 	std::vector<float>               duty_;
 };
+
+} // namespace ib2
+
+// Register the node with the rclcpp components system
+RCLCPP_COMPONENTS_REGISTER_NODE(ib2::PropManager)
+
 // End Of File -----------------------------------------------------------------
