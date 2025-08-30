@@ -89,6 +89,7 @@ ib2::Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     timer_ = this->create_wall_timer(
         std::chrono::nanoseconds(interval_status_.nanoseconds()),
         std::bind(&ib2::Ctl::timerCallback, this));
+
 }
 
 //------------------------------------------------------------------------------
@@ -113,23 +114,23 @@ bool ib2::Ctl::setMember()
         // ib2::AttProfiler prof_att(this->get_node_options());
         // ib2::ThrustAllocator thr(this->get_node_options());
         
-        static const std::string ROSPARAM_INTERVAL_STATUS   ("/ctl/interval_status");
-        static const std::string ROSPARAM_INTERVAL_FEEDBACK ("/ctl/interval_feedback");
-        static const std::string ROSPARAM_DURATION_GOAL     ("/ctl/duration_goal");
-        static const std::string ROSPARAM_TOLERANCE_POS     ("/ctl/tolerance_pos");
-        static const std::string ROSPARAM_TOLERANCE_ATT     ("/ctl/tolerance_att");
-        static const std::string ROSPARAM_TOLERANCE_POS_STOP("/ctl/tolerance_pos_stop");
-        static const std::string ROSPARAM_TOLERANCE_ATT_STOP("/ctl/tolerance_att_stop");
-        static const std::string ROSPARAM_WAIT_CANCEL       ("/ctl/wait_cancel");
-        static const std::string ROSPARAM_WAIT_RELEASE      ("/ctl/wait_release");
-        static const std::string ROSPARAM_WAIT_CALIBRATION  ("/ctl/wait_calibration");
-        static const std::string ROSPARAM_WAIT_DOCKING      ("/ctl/wait_docking");
-        static const std::string ROSPARAM_NAV_COUNTER       ("/navigation_check/nc");
-        static const std::string ROSPARAM_NAV_DR            ("/navigation_check/dr");
-        static const std::string ROSPARAM_NAV_DV            ("/navigation_check/dv");
-        static const std::string ROSPARAM_NAV_DA            ("/navigation_check/da");
-        static const std::string ROSPARAM_NAV_DQ            ("/navigation_check/dq");
-        static const std::string ROSPARAM_NAV_DW            ("/navigation_check/dw");
+        static const std::string ROSPARAM_INTERVAL_STATUS   ("ctl.interval_status");
+        static const std::string ROSPARAM_INTERVAL_FEEDBACK ("ctl.interval_feedback");
+        static const std::string ROSPARAM_DURATION_GOAL     ("ctl.duration_goal");
+        static const std::string ROSPARAM_TOLERANCE_POS     ("ctl.tolerance_pos");
+        static const std::string ROSPARAM_TOLERANCE_ATT     ("ctl.tolerance_att");
+        static const std::string ROSPARAM_TOLERANCE_POS_STOP("ctl.tolerance_pos_stop");
+        static const std::string ROSPARAM_TOLERANCE_ATT_STOP("ctl.tolerance_att_stop");
+        static const std::string ROSPARAM_WAIT_CANCEL       ("ctl.wait_cancel");
+        static const std::string ROSPARAM_WAIT_RELEASE      ("ctl.wait_release");
+        static const std::string ROSPARAM_WAIT_CALIBRATION  ("ctl.wait_calibration");
+        static const std::string ROSPARAM_WAIT_DOCKING      ("ctl.wait_docking");
+        static const std::string ROSPARAM_NAV_COUNTER       ("navigation_check.nc");
+        static const std::string ROSPARAM_NAV_DR            ("navigation_check.dr");
+        static const std::string ROSPARAM_NAV_DV            ("navigation_check.dv");
+        static const std::string ROSPARAM_NAV_DA            ("navigation_check.da");
+        static const std::string ROSPARAM_NAV_DQ            ("navigation_check.dq");
+        static const std::string ROSPARAM_NAV_DW            ("navigation_check.dw");
 
         double interval_status   (-1.);
         double interval_feedback (-1.);
@@ -186,7 +187,7 @@ bool ib2::Ctl::setMember()
         nav_da             = this->get_parameter(ROSPARAM_NAV_DA).as_double();
         nav_dq             = this->get_parameter(ROSPARAM_NAV_DQ).as_double();
         nav_dw             = this->get_parameter(ROSPARAM_NAV_DW).as_double();
-        
+
         // Check parameters
         INTERVAL_RANGE.valid(interval_status  , ROSPARAM_INTERVAL_STATUS);
         INTERVAL_RANGE.valid(interval_feedback, ROSPARAM_INTERVAL_FEEDBACK);
@@ -302,7 +303,8 @@ bool ib2::Ctl::guidance(
     int32_t goal_type, double tolp, double tola)
 {
     rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
-                      last_nav_stamp_.pose.header.stamp.nanosec);
+                      last_nav_stamp_.pose.header.stamp.nanosec,
+                      RCL_ROS_TIME);
     auto tfb = tnav;
     auto tbGoal = tnav;
     bool stayGoal(false);
@@ -310,8 +312,10 @@ bool ib2::Ctl::guidance(
     {
         if (!goal_handle_->is_active())
             break;
-        tnav = last_nav_stamp_.pose.header.stamp;
-        if (this->get_clock()->now() - tnav >= waitCancel_)
+        tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
+        if (this->now() - tnav >= waitCancel_)
         {
             timeoutNavigation();
             break;
@@ -320,7 +324,7 @@ bool ib2::Ctl::guidance(
         if (tnav - tfb >= interval_feedback_)
         {
             goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
-            tfb = this->get_clock()->now();
+            tfb = this->now();
         }
         if (goal_type == ib2_interfaces::msg::CtlStatusType::SCAN ? 
             reachGoalScan(stayGoal, tbGoal, tnav, fb, tola):
@@ -385,12 +389,15 @@ void ib2::Ctl::release()
         setKeepPose();
         controller_.flash();
         rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
-                          last_nav_stamp_.pose.header.stamp.nanosec);
+                          last_nav_stamp_.pose.header.stamp.nanosec,
+                          RCL_ROS_TIME);
         auto tfb(tnav);
         auto toff(tnav + waitRelease_);
         while (tnav < toff)
         {
-            tnav = last_nav_stamp_.pose.header.stamp;
+            tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                                last_nav_stamp_.pose.header.stamp.nanosec,
+                                RCL_ROS_TIME);
             auto fb = profiler_.statesToGoal(last_nav_stamp_);
             if (tnav - tfb >= interval_feedback_)
             {
@@ -489,7 +496,8 @@ void ib2::Ctl::docking(bool correction)
 void ib2::Ctl::dockingStandBy()
 {
     rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
-                      last_nav_stamp_.pose.header.stamp.nanosec);
+                      last_nav_stamp_.pose.header.stamp.nanosec,
+                      RCL_ROS_TIME);
     auto tfb(tnav);
     auto toff(tnav + waitDocking_);
 
@@ -500,7 +508,9 @@ void ib2::Ctl::dockingStandBy()
     bool aborted(false);
     while (tnav < toff)
     {
-        tnav = last_nav_stamp_.pose.header.stamp;
+        tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
         auto fb = profiler_.statesToGoal(last_nav_stamp_);
         if (tnav - tfb >= interval_feedback_)
         {
@@ -542,7 +552,7 @@ void ib2::Ctl::scan()
         else if (i + 1 == nscan)
         {
             ib2_interfaces::action::CtlCommand::Result r;
-            r.stamp = this->get_clock()->now();
+            r.stamp = this->now();
             r.type = ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV;
             goal_handle_->succeed(std::make_shared<CtlCommand::Result>(r));
             status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
@@ -569,7 +579,7 @@ void ib2::Ctl::stopping()
 void ib2::Ctl::abortAction(uint8_t result_type)
 {
     ib2_interfaces::action::CtlCommand::Result r;
-    r.stamp = this->get_clock()->now();
+    r.stamp = this->now();
     r.type = result_type;
     if (goal_handle_->is_active())
         // goal_handle_->canceled(std::make_shared<CtlCommand::Result>(r));
@@ -587,14 +597,17 @@ void ib2::Ctl::cancelTarget(bool docking)
     controller_.flash();
 
     rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
-                      last_nav_stamp_.pose.header.stamp.nanosec);
+                      last_nav_stamp_.pose.header.stamp.nanosec,
+                      RCL_ROS_TIME);
     auto tbGoal = tnav;
     bool stayGoal(false);
     auto te(profiler_.te() + waitCancel_);
     while (tnav < te)
     {
-        tnav = last_nav_stamp_.pose.header.stamp;
-        if (this->get_clock()->now() - tnav >= waitCancel_)
+        tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
+        if (this->now() - tnav >= waitCancel_)
         {
             timeoutNavigation();
             break;
@@ -616,14 +629,17 @@ void ib2::Ctl::cancelTarget(bool docking)
         controller_.flash();
 
         rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
-                          last_nav_stamp_.pose.header.stamp.nanosec);
+                          last_nav_stamp_.pose.header.stamp.nanosec,
+                          RCL_ROS_TIME);
         auto tbGoal = tnav;
         bool stayGoal(false);
         auto te(profiler_.te() + waitCancel_);
         while (tnav < te)
         {
-            tnav = last_nav_stamp_.pose.header.stamp;
-            if (this->get_clock()->now() - tnav >= waitCancel_)
+            tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                                last_nav_stamp_.pose.header.stamp.nanosec,
+                                RCL_ROS_TIME);
+            if (this->now() - tnav >= waitCancel_)
             {
                 timeoutNavigation();
                 break;
@@ -643,7 +659,7 @@ void ib2::Ctl::goalTarget()
 {
     RCLCPP_INFO(this->get_logger(), "%s: Succeeded", COMMAND_ACTION.c_str());
     CtlCommand::Result r;
-    r.stamp = this->get_clock()->now();
+    r.stamp = this->now();
     r.type = CtlCommand::Result::TERMINATE_SUCCESS;
     goal_handle_->succeed(std::make_shared<CtlCommand::Result>(r));
     controller_.flash();
@@ -659,7 +675,9 @@ void ib2::Ctl::timeoutNavigation()
     setKeepPose();
     status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
 
-    auto wrench = controller_.wrenchCommandStop(this->get_clock()->now());
+    auto tn = rclcpp::Time(this->now(),
+                           RCL_ROS_TIME);
+    auto wrench = controller_.wrenchCommandStop(tn);
     //fsm_->subscribeCommand(wrench);    // Modification for platform packages
     wrench_pub_->publish(wrench);
 }
@@ -684,7 +702,7 @@ bool ib2::Ctl::reachGoal
     if (std::abs(dgo) < tolp && std::abs(qgo) < tola)
     {
         if (!stay)
-            tin  = tnav;
+            tin = rclcpp::Time(tnav, RCL_ROS_TIME);
         stay = true;
     }
     else if (stay)
@@ -706,7 +724,7 @@ bool ib2::Ctl::reachGoalScan
     if (std::abs(qgo) < tola)
     {
         if (!stay)
-            tin  = tnav;
+            tin = rclcpp::Time(tnav, RCL_ROS_TIME);
         stay = true;
     }
     else if (stay)
@@ -749,7 +767,8 @@ bool ib2::Ctl::validCommand(const std::shared_ptr<const CtlCommand::Goal>& goal)
 bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first) const
 {
     rclcpp::Time tn(nav.pose.header.stamp.sec,
-                    nav.pose.header.stamp.nanosec);
+                    nav.pose.header.stamp.nanosec,
+                    RCL_ROS_TIME);
     auto& rn(nav.pose.pose.position);
     auto& qn(nav.pose.pose.orientation);
     auto& vn(nav.twist.linear);
@@ -772,7 +791,8 @@ bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool 
         if (!first)
         {
             rclcpp::Time tc(last_nav_stamp_.pose.header.stamp.sec,
-                            last_nav_stamp_.pose.header.stamp.nanosec);
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
             if (tc >= tn)
             {
                 RCLCPP_INFO(this->get_logger(), "Invalid Navigation Stamp : current %lld.%09lld, last %lld.%09lld",
@@ -851,9 +871,11 @@ void ib2::Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal
     try 
     {
         rclcpp::Time tcmd(goal->target.header.stamp.sec,
-                          goal->target.header.stamp.nanosec);
+                          goal->target.header.stamp.nanosec,
+                          RCL_ROS_TIME);
         rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
-                          last_nav_stamp_.pose.header.stamp.nanosec);
+                          last_nav_stamp_.pose.header.stamp.nanosec,
+                          RCL_ROS_TIME);
         if (!valid_navigation_ || tcmd - tnav > interval_feedback_)
             throw std::domain_error("no valid navigation message");
         if (goal->type.type < ib2_interfaces::msg::CtlStatusType::STOP_MOVING)
@@ -906,7 +928,7 @@ bool ib2::Ctl::updateCallback(
     // ROS_INFO("Update Parameters by /ctl/update_params");
     RCLCPP_INFO(this->get_logger(), "%s: Updating parameters", UPDATE_SERVICE.c_str());
 
-    res->stamp = this->get_clock()->now();
+    res->stamp = this->now();
     if (setMember())
     {
         RCLCPP_INFO(this->get_logger(), "%s: Succeeded", UPDATE_SERVICE.c_str());
@@ -996,7 +1018,10 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
         {
             if (publishWrench)
             {
-                auto wrench = controller_.wrenchCommandStop(nav_stamp.pose.header.stamp);
+                auto tn = rclcpp::Time(nav_stamp.pose.header.stamp.sec,
+                                      nav_stamp.pose.header.stamp.nanosec,
+                                      RCL_ROS_TIME);
+                auto wrench = controller_.wrenchCommandStop(tn);
                 //fsm_->subscribeCommand(wrench);    /// Modification for platform packages
                 wrench_pub_->publish(wrench);
                 publishWrench = false;
@@ -1007,7 +1032,9 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
             publishWrench = true;
             
             // 位置姿勢誘導プロファイル
-            auto p = profiler_.posAttProfile(nav_stamp.pose.header.stamp);
+            auto p = profiler_.posAttProfile(rclcpp::Time(nav_stamp.pose.header.stamp.sec,
+                                                        nav_stamp.pose.header.stamp.nanosec,
+                                                        RCL_ROS_TIME));
             
             // 力トルク
             geometry_msgs::msg::WrenchStamped wrench
@@ -1039,9 +1066,9 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
 // Callback of publish on the TOPIC_NAV_POSE
 void ib2::Ctl::timerCallback()
 {
-    try 
+    try
     {
-        auto p = profiler_.posAttProfile(this->get_clock()->now());
+        auto p = profiler_.posAttProfile(rclcpp::Time(this->now(), RCL_ROS_TIME));
         auto msg(p.status(status_));
         // msg.pose.header.seq = ++seq_status_;
         status_pub_->publish(msg);

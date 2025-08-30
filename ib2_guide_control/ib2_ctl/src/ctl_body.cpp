@@ -20,13 +20,13 @@ m_(1.), Is_(Eigen::Matrix3d::Identity())
 {
     using namespace ib2_mss;
     
-    static const std::string ROSPARAM_MASS ("mass");
-    static const std::string ROSPARAM_IS_XX("Is/xx");
-    static const std::string ROSPARAM_IS_YY("Is/yy");
-    static const std::string ROSPARAM_IS_ZZ("Is/zz");
-    static const std::string ROSPARAM_IS_XY("Is/xy");
-    static const std::string ROSPARAM_IS_YZ("Is/yz");
-    static const std::string ROSPARAM_IS_ZX("Is/zx");
+    static const std::string ROSPARAM_MASS ("ctl_body.mass");
+    static const std::string ROSPARAM_IS_XX("ctl_body.Is.xx");
+    static const std::string ROSPARAM_IS_YY("ctl_body.Is.yy");
+    static const std::string ROSPARAM_IS_ZZ("ctl_body.Is.zz");
+    static const std::string ROSPARAM_IS_XY("ctl_body.Is.xy");
+    static const std::string ROSPARAM_IS_YZ("ctl_body.Is.yz");
+    static const std::string ROSPARAM_IS_ZX("ctl_body.Is.zx");
     
     double mass(-1.);
     double Is_xx(-1.);
@@ -47,13 +47,13 @@ m_(1.), Is_(Eigen::Matrix3d::Identity())
 
     // パラメータの取得
     mass  = this->get_parameter(ROSPARAM_MASS).as_double();
-    Is_xx = this->get_parameter(ROSPARAM_MASS).as_double();
-    Is_yy = this->get_parameter(ROSPARAM_MASS).as_double();
-    Is_zz = this->get_parameter(ROSPARAM_MASS).as_double();
-    Is_xy = this->get_parameter(ROSPARAM_MASS).as_double();
-    Is_yz = this->get_parameter(ROSPARAM_MASS).as_double();
-    Is_zx = this->get_parameter(ROSPARAM_MASS).as_double();
-    
+    Is_xx = this->get_parameter(ROSPARAM_IS_XX).as_double();
+    Is_yy = this->get_parameter(ROSPARAM_IS_YY).as_double();
+    Is_zz = this->get_parameter(ROSPARAM_IS_ZZ).as_double();
+    Is_xy = this->get_parameter(ROSPARAM_IS_XY).as_double();
+    Is_yz = this->get_parameter(ROSPARAM_IS_YZ).as_double();
+    Is_zx = this->get_parameter(ROSPARAM_IS_ZX).as_double();
+
     // パラメータのチェック
     RangeCheckerD::positive(mass , true, ROSPARAM_MASS);
     RangeCheckerD::positive(Is_xx, true, ROSPARAM_IS_XX);

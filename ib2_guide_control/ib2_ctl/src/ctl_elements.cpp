@@ -24,7 +24,7 @@ CtlElements::CtlElements
 (const rclcpp::Time& t,
  const Eigen::Vector3d& r, const Eigen::Vector3d& v, const Eigen::Vector3d& a,
  const Eigen::Quaterniond& q, const Eigen::Vector3d& w) :
-    t_(t), r_(r), v_(v), a_(a), q_(q), w_(w)
+    t_(rclcpp::Time(t.seconds(), t.nanoseconds(), RCL_ROS_TIME)), r_(r), v_(v), a_(a), q_(q), w_(w)
 {
 }
 

@@ -21,7 +21,7 @@ ib2::Dtc::Dtc(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     using namespace ib2_mss;
 
     /** 航法キューサイズ */
-    static const std::string ROSPARAM_QUE_SIZE("/nav_que/size");
+    static const std::string ROSPARAM_QUE_SIZE("nav_que.size");
     int que_size       (0);
     this->declare_parameter(ROSPARAM_QUE_SIZE, 10);
     que_size = this->get_parameter(ROSPARAM_QUE_SIZE).as_int();
@@ -29,9 +29,32 @@ ib2::Dtc::Dtc(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     (RangeCheckerUI32::TYPE::GE, 2, true);
     QUE_SIZE_RANGE.valid(que_size, ROSPARAM_QUE_SIZE);
     que_size_  = que_size;
-    RCLCPP_INFO(this->get_logger(),"/nav_que/size : %d", que_size_);
+    RCLCPP_INFO(this->get_logger(),"nav_que.size : %d", que_size_);
 
     /** メンバ設定 */
+
+    this->declare_parameter("docking_chk.tolerance_pos", tolerance_pos_);
+    this->declare_parameter("docking_chk.tolerance_att", tolerance_att_);
+    this->declare_parameter("docking_chk.docking_pos.x", docking_pos_.x());
+    this->declare_parameter("docking_chk.docking_pos.y", docking_pos_.y());
+    this->declare_parameter("docking_chk.docking_pos.z", docking_pos_.z());
+    this->declare_parameter("docking_chk.keep_state_num", keep_state_num_);
+    this->declare_parameter("docking_chk.sigma_start_jud_num", dc_sigma_start_jud_num_);
+    this->declare_parameter("docking_chk.sigma_start_dacc", dc_sigma_start_dacc_);
+    this->declare_parameter("docking_chk.sigma_start_drate", dc_sigma_start_drate_);
+    this->declare_parameter("att_profile.rda.x", docking_q_.x());
+    this->declare_parameter("att_profile.rda.y", docking_q_.y());
+    this->declare_parameter("att_profile.rda.z", docking_q_.z());
+    this->declare_parameter("att_profile.rda.w", docking_q_.w());
+
+    this->declare_parameter("colcaprel_chk.colcap_id_jud_num", colcap_id_jud_num_);
+    this->declare_parameter("colcaprel_chk.sigma_start_jud_num", sigma_start_jud_num_);
+    this->declare_parameter("colcaprel_chk.sigma_end_jud_num", sigma_end_jud_num_);
+    this->declare_parameter("colcaprel_chk.sigma_start_dacc", sigma_start_dacc_);
+    this->declare_parameter("colcaprel_chk.sigma_end_dacc", sigma_end_dacc_);
+    this->declare_parameter("colcaprel_chk.sigma_start_drate", sigma_start_drate_);
+    this->declare_parameter("colcaprel_chk.sigma_end_drate", sigma_end_drate_);
+
     setMember();
 
     /** 標準偏差計算初期化 */
@@ -56,92 +79,70 @@ bool ib2::Dtc::setMember()
     bool ret = true;
 
     // ドッキング検知パラメータ
-    this->declare_parameter("/docking_chk/tolerance_pos", tolerance_pos_);
-    this->declare_parameter("/docking_chk/tolerance_att", tolerance_att_);
-    this->declare_parameter("/docking_chk/docking_pos/x", docking_pos_.x());
-    this->declare_parameter("/docking_chk/docking_pos/y", docking_pos_.y());
-    this->declare_parameter("/docking_chk/docking_pos/z", docking_pos_.z());
-    this->declare_parameter("/docking_chk/keep_state_num", keep_state_num_);
-    this->declare_parameter("/docking_chk/sigma_start_jud_num", dc_sigma_start_jud_num_);
-    this->declare_parameter("/docking_chk/sigma_start_dacc", dc_sigma_start_dacc_);
-    this->declare_parameter("/docking_chk/sigma_start_drate", dc_sigma_start_drate_);
-    this->declare_parameter("/att_profile/rda/x", docking_q_.x());
-    this->declare_parameter("/att_profile/rda/y", docking_q_.y());
-    this->declare_parameter("/att_profile/rda/z", docking_q_.z());
-    this->declare_parameter("/att_profile/rda/w", docking_q_.w());
-
-    tolerance_pos_ = this->get_parameter("/docking_chk/tolerance_pos").as_double();
-    tolerance_att_ = this->get_parameter("/docking_chk/tolerance_att").as_double();
-    docking_pos_.x() = this->get_parameter("/docking_chk/docking_pos/x").as_double();
-    docking_pos_.y() = this->get_parameter("/docking_chk/docking_pos/y").as_double();
-    docking_pos_.z() = this->get_parameter("/docking_chk/docking_pos/z").as_double();
-    keep_state_num_ = this->get_parameter("/docking_chk/keep_state_num").as_int();
-    dc_sigma_start_jud_num_ = this->get_parameter("/docking_chk/sigma_start_jud_num").as_int();
-    dc_sigma_start_dacc_ = this->get_parameter("/docking_chk/sigma_start_dacc").as_double();
-    dc_sigma_start_drate_ = this->get_parameter("/docking_chk/sigma_start_drate").as_double();
-    docking_q_.x() = this->get_parameter("/att_profile/rda/x").as_double();
-    docking_q_.y() = this->get_parameter("/att_profile/rda/y").as_double();
-    docking_q_.z() = this->get_parameter("/att_profile/rda/z").as_double();
-    docking_q_.w() = this->get_parameter("/att_profile/rda/w").as_double();
+    tolerance_pos_ = this->get_parameter("docking_chk.tolerance_pos").as_double();
+    tolerance_att_ = this->get_parameter("docking_chk.tolerance_att").as_double();
+    docking_pos_.x() = this->get_parameter("docking_chk.docking_pos.x").as_double();
+    docking_pos_.y() = this->get_parameter("docking_chk.docking_pos.y").as_double();
+    docking_pos_.z() = this->get_parameter("docking_chk.docking_pos.z").as_double();
+    keep_state_num_ = this->get_parameter("docking_chk.keep_state_num").as_int();
+    dc_sigma_start_jud_num_ = this->get_parameter("docking_chk.sigma_start_jud_num").as_int();
+    dc_sigma_start_dacc_ = this->get_parameter("docking_chk.sigma_start_dacc").as_double();
+    dc_sigma_start_drate_ = this->get_parameter("docking_chk.sigma_start_drate").as_double();
+    docking_q_.x() = this->get_parameter("att_profile.rda.x").as_double();
+    docking_q_.y() = this->get_parameter("att_profile.rda.y").as_double();
+    docking_q_.z() = this->get_parameter("att_profile.rda.z").as_double();
+    docking_q_.w() = this->get_parameter("att_profile.rda.w").as_double();
 
     // TODO: ここでのチェックは、パラメータサーバーからの値が正しいかどうかを確認するためのものです。
     ret = ret && tolerance_pos_;
     ret = ret && tolerance_att_;
-    ret = ret && docking_pos_.x();
-    ret = ret && docking_pos_.y();
-    ret = ret && docking_pos_.z();
+    // ret = ret && docking_pos_.x(); //  DEBUG: when pos is 0, return false
+    // ret = ret && docking_pos_.y();
+    // ret = ret && docking_pos_.z();
     ret = ret && keep_state_num_;
     ret = ret && dc_sigma_start_jud_num_;
     ret = ret && dc_sigma_start_dacc_;
     ret = ret && dc_sigma_start_drate_;
-    ret = ret && docking_q_.x();
-    ret = ret && docking_q_.y();
-    ret = ret && docking_q_.z();
-    ret = ret && docking_q_.w();
+    // ret = ret && docking_q_.x(); //  DEBUG: when pos is 0, return false
+    // ret = ret && docking_q_.y();
+    // ret = ret && docking_q_.z();
+    // ret = ret && docking_q_.w();
     
-    ret = ret && RangeCheckerD::positive(tolerance_pos_    , true, "/docking_chk/tolerance_pos");
-    ret = ret && RangeCheckerD::positive(tolerance_att_    , true, "/docking_chk/tolerance_att");
+    ret = ret && RangeCheckerD::positive(tolerance_pos_    , true, "docking_chk.tolerance_pos");
+    ret = ret && RangeCheckerD::positive(tolerance_att_    , true, "docking_chk.tolerance_att");
     ret = ret && RangeCheckerD::positive(docking_q_.norm() , true, "docking attitude quaternion magnitude");
 
     static const RangeCheckerUI32 JUD_NUM_RANGE
     (RangeCheckerUI32::TYPE::GE, 1, true);
 
-    ret = ret && JUD_NUM_RANGE.valid(keep_state_num_,                  "/docking_chk/keep_state_num_");
-    ret = ret && JUD_NUM_RANGE.valid(dc_sigma_start_jud_num_ ,         "/docking_chk/sigma_start_jud_num");
-    ret = ret && RangeCheckerD::positive(dc_sigma_start_dacc_ , true,  "/docking_chk/sigma_start_dacc");
-    ret = ret && RangeCheckerD::positive(dc_sigma_start_drate_, true,  "/docking_chk/sigma_start_drate");
+    ret = ret && JUD_NUM_RANGE.valid(keep_state_num_,                  "docking_chk.keep_state_num_");
+    ret = ret && JUD_NUM_RANGE.valid(dc_sigma_start_jud_num_ ,         "docking_chk.sigma_start_jud_num");
+    ret = ret && RangeCheckerD::positive(dc_sigma_start_dacc_ , true,  "docking_chk.sigma_start_dacc");
+    ret = ret && RangeCheckerD::positive(dc_sigma_start_drate_, true,  "docking_chk.sigma_start_drate");
 
     RCLCPP_INFO(this->get_logger(), "******** Set Parameters in dtc.cpp");
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/tolerance_pos         : %f", tolerance_pos_);
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/tolerance_att         : %f", tolerance_att_);
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/docking_pos/x         : %f", docking_pos_.x());
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/docking_pos/y         : %f", docking_pos_.y());
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/docking_pos/z         : %f", docking_pos_.z());
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/keep_state_num        : %d", keep_state_num_);
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/sigma_start_jud_num   : %d", dc_sigma_start_jud_num_);
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/sigma_start_dacc      : %f", dc_sigma_start_dacc_);
-    RCLCPP_INFO(this->get_logger(), "/docking_chk/sigma_start_drate     : %f", dc_sigma_start_drate_);
-    RCLCPP_INFO(this->get_logger(), "/att_profile/rda/x                 : %f", docking_q_.x());
-    RCLCPP_INFO(this->get_logger(), "/att_profile/rda/y                 : %f", docking_q_.y());
-    RCLCPP_INFO(this->get_logger(), "/att_profile/rda/z                 : %f", docking_q_.z());
-    RCLCPP_INFO(this->get_logger(), "/att_profile/rda/w                 : %f", docking_q_.w());
+    RCLCPP_INFO(this->get_logger(), "docking_chk.tolerance_pos         : %f", tolerance_pos_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.tolerance_att         : %f", tolerance_att_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.docking_pos.x         : %f", docking_pos_.x());
+    RCLCPP_INFO(this->get_logger(), "docking_chk.docking_pos.y         : %f", docking_pos_.y());
+    RCLCPP_INFO(this->get_logger(), "docking_chk.docking_pos.z         : %f", docking_pos_.z());
+    RCLCPP_INFO(this->get_logger(), "docking_chk.keep_state_num        : %d", keep_state_num_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.sigma_start_jud_num   : %d", dc_sigma_start_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.sigma_start_dacc      : %f", dc_sigma_start_dacc_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.sigma_start_drate     : %f", dc_sigma_start_drate_);
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.x                 : %f", docking_q_.x());
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.y                 : %f", docking_q_.y());
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.z                 : %f", docking_q_.z());
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.w                 : %f", docking_q_.w());
 
     // 衝突・クルーキャプチャリリースパラメータ
-    this->declare_parameter("/colcaprel_chk/colcap_id_jud_num", colcap_id_jud_num_);
-    this->declare_parameter("/colcaprel_chk/sigma_start_jud_num", sigma_start_jud_num_);
-    this->declare_parameter("/colcaprel_chk/sigma_end_jud_num", sigma_end_jud_num_);
-    this->declare_parameter("/colcaprel_chk/sigma_start_dacc", sigma_start_dacc_);
-    this->declare_parameter("/colcaprel_chk/sigma_end_dacc", sigma_end_dacc_);
-    this->declare_parameter("/colcaprel_chk/sigma_start_drate", sigma_start_drate_);
-    this->declare_parameter("/colcaprel_chk/sigma_end_drate", sigma_end_drate_);
-
-    colcap_id_jud_num_   = this->get_parameter("/colcaprel_chk/colcap_id_jud_num").as_int();
-    sigma_start_jud_num_ = this->get_parameter("/colcaprel_chk/sigma_start_jud_num").as_int();
-    sigma_end_jud_num_   = this->get_parameter("/colcaprel_chk/sigma_end_jud_num").as_int();
-    sigma_start_dacc_    = this->get_parameter("/colcaprel_chk/sigma_start_dacc").as_double();
-    sigma_end_dacc_      = this->get_parameter("/colcaprel_chk/sigma_end_dacc").as_double();
-    sigma_start_drate_   = this->get_parameter("/colcaprel_chk/sigma_start_drate").as_double();
-    sigma_end_drate_     = this->get_parameter("/colcaprel_chk/sigma_end_drate").as_double();
+    colcap_id_jud_num_   = this->get_parameter("colcaprel_chk.colcap_id_jud_num").as_int();
+    sigma_start_jud_num_ = this->get_parameter("colcaprel_chk.sigma_start_jud_num").as_int();
+    sigma_end_jud_num_   = this->get_parameter("colcaprel_chk.sigma_end_jud_num").as_int();
+    sigma_start_dacc_    = this->get_parameter("colcaprel_chk.sigma_start_dacc").as_double();
+    sigma_end_dacc_      = this->get_parameter("colcaprel_chk.sigma_end_dacc").as_double();
+    sigma_start_drate_   = this->get_parameter("colcaprel_chk.sigma_start_drate").as_double();
+    sigma_end_drate_     = this->get_parameter("colcaprel_chk.sigma_end_drate").as_double();
 
     // TODO: ここでのチェックは、パラメータサーバーからの値が正しいかどうかを確認するためのものです。
     ret = ret && colcap_id_jud_num_;
@@ -152,22 +153,22 @@ bool ib2::Dtc::setMember()
     ret = ret && sigma_start_drate_;
     ret = ret && sigma_end_drate_;
 
-    ret = ret && JUD_NUM_RANGE.valid(colcap_id_jud_num_   , "/colcaprel_chk/colcap_id_jud_num");
-    ret = ret && JUD_NUM_RANGE.valid(sigma_start_jud_num_ , "/colcaprel_chk/sigma_start_jud_num");
-    ret = ret && JUD_NUM_RANGE.valid(sigma_end_jud_num_   , "/colcaprel_chk/sigma_end_jud_num");
+    ret = ret && JUD_NUM_RANGE.valid(colcap_id_jud_num_   , "colcaprel_chk.colcap_id_jud_num");
+    ret = ret && JUD_NUM_RANGE.valid(sigma_start_jud_num_ , "colcaprel_chk.sigma_start_jud_num");
+    ret = ret && JUD_NUM_RANGE.valid(sigma_end_jud_num_   , "colcaprel_chk.sigma_end_jud_num");
 
-    ret = ret && RangeCheckerD::positive(sigma_start_dacc_    , true, "/colcaprel_chk/sigma_start_dacc");
-    ret = ret && RangeCheckerD::positive(sigma_end_dacc_      , true, "/colcaprel_chk/sigma_end_dacc");
-    ret = ret && RangeCheckerD::positive(sigma_start_drate_   , true, "/colcaprel_chk/sigma_start_drate");
-    ret = ret && RangeCheckerD::positive(sigma_end_drate_     , true, "/colcaprel_chk/sigma_end_drate");
+    ret = ret && RangeCheckerD::positive(sigma_start_dacc_    , true, "colcaprel_chk.sigma_start_dacc");
+    ret = ret && RangeCheckerD::positive(sigma_end_dacc_      , true, "colcaprel_chk.sigma_end_dacc");
+    ret = ret && RangeCheckerD::positive(sigma_start_drate_   , true, "colcaprel_chk.sigma_start_drate");
+    ret = ret && RangeCheckerD::positive(sigma_end_drate_     , true, "colcaprel_chk.sigma_end_drate");
 
-    RCLCPP_INFO(this->get_logger(), "/colcaprel_chk/colcap_id_jud_num   : %d", colcap_id_jud_num_);
-    RCLCPP_INFO(this->get_logger(), "/colcaprel_chk/sigma_start_jud_num : %d", sigma_start_jud_num_);
-    RCLCPP_INFO(this->get_logger(), "/colcaprel_chk/sigma_end_jud_num   : %d", sigma_end_jud_num_);
-    RCLCPP_INFO(this->get_logger(), "/colcaprel_chk/sigma_start_dacc    : %f", sigma_start_dacc_);
-    RCLCPP_INFO(this->get_logger(), "/colcaprel_chk/sigma_end_dacc      : %f", sigma_end_dacc_);
-    RCLCPP_INFO(this->get_logger(), "/colcaprel_chk/sigma_start_drate   : %f", sigma_start_drate_);
-    RCLCPP_INFO(this->get_logger(), "/colcaprel_chk/sigma_end_drate     : %f", sigma_end_drate_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.colcap_id_jud_num   : %d", colcap_id_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_start_jud_num : %d", sigma_start_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_end_jud_num   : %d", sigma_end_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_start_dacc    : %f", sigma_start_dacc_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_end_dacc      : %f", sigma_end_dacc_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_start_drate   : %f", sigma_start_drate_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_end_drate     : %f", sigma_end_drate_);
 
     if(!ret)
         RCLCPP_ERROR(this->get_logger(), "Parameter Setting Error in dtc.cpp");

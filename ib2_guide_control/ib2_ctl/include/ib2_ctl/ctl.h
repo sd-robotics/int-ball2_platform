@@ -57,7 +57,6 @@ public:
     using CtlCommand = ib2_interfaces::action::CtlCommand;
     using GoalHandleCtlCommand = rclcpp_action::ServerGoalHandle<CtlCommand>;
 
-
     /** コンストラクタ */
     explicit Ctl(const rclcpp::NodeOptions& options);
 

@@ -32,12 +32,12 @@ epsRm_(0.001), aip_(Eigen::Vector3d::Zero()), rdp_(Eigen::Vector3d::Zero())
     static const RangeCheckerD EPS_RANGE
     (RangeCheckerD::TYPE::GT_LE, 0., 0.001, true);
     
-    static const std::string ROSPARAM_F_MAX  ("f_max");
-    static const std::string ROSPARAM_V_MAX  ("v_max");
-    static const std::string ROSPARAM_X_THR  ("x_threshold");
-    static const std::string ROSPARAM_ETA    ("eta" );
-    static const std::string ROSPARAM_ETA_MAX("eta_max");
-    static const std::string ROSPARAM_EPS    ("eps_rm");
+    static const std::string ROSPARAM_F_MAX  ("pos_profile.f_max");
+    static const std::string ROSPARAM_V_MAX  ("pos_profile.v_max");
+    static const std::string ROSPARAM_X_THR  ("pos_profile.x_threshold");
+    static const std::string ROSPARAM_ETA    ("pos_profile.eta");
+    static const std::string ROSPARAM_ETA_MAX("pos_profile.eta_max");
+    static const std::string ROSPARAM_EPS    ("pos_profile.eps_rm");
 
     double Fmax  (-1.);
     double vmax  (-1.);
@@ -54,12 +54,12 @@ epsRm_(0.001), aip_(Eigen::Vector3d::Zero()), rdp_(Eigen::Vector3d::Zero())
     this->declare_parameter(ROSPARAM_ETA_MAX, etamax);
     this->declare_parameter(ROSPARAM_EPS    , eps_rm);
 
-    this->declare_parameter("aip/x", aip_.x());
-    this->declare_parameter("aip/y", aip_.y());
-    this->declare_parameter("aip/z", aip_.z());
-    this->declare_parameter("rdp/x", rdp_.x());
-    this->declare_parameter("rdp/y", rdp_.y());
-    this->declare_parameter("rdp/z", rdp_.z());
+    this->declare_parameter("pos_profile.aip.x", aip_.x());
+    this->declare_parameter("pos_profile.aip.y", aip_.y());
+    this->declare_parameter("pos_profile.aip.z", aip_.z());
+    this->declare_parameter("pos_profile.rdp.x", rdp_.x());
+    this->declare_parameter("pos_profile.rdp.y", rdp_.y());
+    this->declare_parameter("pos_profile.rdp.z", rdp_.z());
 
     // パラメータの取得
     Fmax   = this->get_parameter(ROSPARAM_F_MAX  ).as_double();
@@ -69,12 +69,12 @@ epsRm_(0.001), aip_(Eigen::Vector3d::Zero()), rdp_(Eigen::Vector3d::Zero())
     etamax = this->get_parameter(ROSPARAM_ETA_MAX).as_double();
     eps_rm = this->get_parameter(ROSPARAM_EPS    ).as_double();
 
-    aip_.x() = this->get_parameter("aip/x").as_double();
-    aip_.y() = this->get_parameter("aip/x").as_double();
-    aip_.z() = this->get_parameter("aip/x").as_double();
-    rdp_.x() = this->get_parameter("aip/x").as_double();
-    rdp_.y() = this->get_parameter("aip/x").as_double();
-    rdp_.z() = this->get_parameter("aip/x").as_double();
+    aip_.x() = this->get_parameter("pos_profile.aip.x").as_double();
+    aip_.y() = this->get_parameter("pos_profile.aip.y").as_double();
+    aip_.z() = this->get_parameter("pos_profile.aip.z").as_double();
+    rdp_.x() = this->get_parameter("pos_profile.rdp.x").as_double();
+    rdp_.y() = this->get_parameter("pos_profile.rdp.y").as_double();
+    rdp_.z() = this->get_parameter("pos_profile.rdp.z").as_double();
 
     // パラメータのチェック
     F_MAX_RANGE.valid(Fmax, ROSPARAM_F_MAX);
@@ -93,18 +93,18 @@ epsRm_(0.001), aip_(Eigen::Vector3d::Zero()), rdp_(Eigen::Vector3d::Zero())
     
     // パラメータの表示
     RCLCPP_INFO(get_logger(), "******** Set Parameters in pos_profiler.cpp");
-    RCLCPP_INFO(get_logger(), "f_max           : %f", Fmax_);
-    RCLCPP_INFO(get_logger(), "v_max           : %f", vmax_);
-    RCLCPP_INFO(get_logger(), "x_threshold     : %f", xthr_);
-    RCLCPP_INFO(get_logger(), "eta             : %f", eta_);
-    RCLCPP_INFO(get_logger(), "eta_max         : %f", etamax_);
-    RCLCPP_INFO(get_logger(), "eps_rm          : %f", epsRm_);
-    RCLCPP_INFO(get_logger(), "aip/x           : %f", aip_.x());
-    RCLCPP_INFO(get_logger(), "aip/y           : %f", aip_.y());
-    RCLCPP_INFO(get_logger(), "aip/z           : %f", aip_.z());
-    RCLCPP_INFO(get_logger(), "rdp/x           : %f", rdp_.x());
-    RCLCPP_INFO(get_logger(), "rdp/y           : %f", rdp_.y());
-    RCLCPP_INFO(get_logger(), "rdp/z           : %f", rdp_.z());
+    RCLCPP_INFO(get_logger(), "pos_profile.f_max           : %f", Fmax_);
+    RCLCPP_INFO(get_logger(), "pos_profile.v_max           : %f", vmax_);
+    RCLCPP_INFO(get_logger(), "pos_profile.x_threshold     : %f", xthr_);
+    RCLCPP_INFO(get_logger(), "pos_profile.eta             : %f", eta_);
+    RCLCPP_INFO(get_logger(), "pos_profile.eta_max         : %f", etamax_);
+    RCLCPP_INFO(get_logger(), "pos_profile.eps_rm          : %f", epsRm_);
+    RCLCPP_INFO(get_logger(), "pos_profile.aip.x           : %f", aip_.x());
+    RCLCPP_INFO(get_logger(), "pos_profile.aip.y           : %f", aip_.y());
+    RCLCPP_INFO(get_logger(), "pos_profile.aip.z           : %f", aip_.z());
+    RCLCPP_INFO(get_logger(), "pos_profile.rdp.x           : %f", rdp_.x());
+    RCLCPP_INFO(get_logger(), "pos_profile.rdp.y           : %f", rdp_.y());
+    RCLCPP_INFO(get_logger(), "pos_profile.rdp.z           : %f", rdp_.z());
 }
 
 //------------------------------------------------------------------------------

@@ -36,12 +36,12 @@ rclcpp::Node("att_ctl", options)
     double kd(-1.);
 
     // パラメータの宣言
-    this->declare_parameter("kp", 1.0);
-    this->declare_parameter("kd", 1.0);
+    this->declare_parameter("att_ctl.kp", 1.0);
+    this->declare_parameter("att_ctl.kd", 1.0);
 
     // パラメータの取得
-    kp = this->get_parameter("kp").as_double();
-    kd = this->get_parameter("kd").as_double();
+    kp = this->get_parameter("att_ctl.kp").as_double();
+    kd = this->get_parameter("att_ctl.kd").as_double();
 
     // パラメータの範囲チェック
     RangeCheckerD::notNegative(kp, true, "kp");
@@ -52,8 +52,8 @@ rclcpp::Node("att_ctl", options)
     // パラメータの表示
     RCLCPP_INFO(this->get_logger(),
             "******** Set Parameters in att_controller.cpp");
-    RCLCPP_INFO(this->get_logger(), "/att_ctl/kp   : %f", kp_);
-    RCLCPP_INFO(this->get_logger(), "/att_ctl/kd   : %f", kd_);
+    RCLCPP_INFO(this->get_logger(), "att_ctl.kp   : %f", kp_);
+    RCLCPP_INFO(this->get_logger(), "att_ctl.kd   : %f", kd_);
 }
 
 //------------------------------------------------------------------------------

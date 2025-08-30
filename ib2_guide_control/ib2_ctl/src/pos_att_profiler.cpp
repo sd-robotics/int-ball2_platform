@@ -121,6 +121,7 @@ namespace
 // rosparamによるコンストラクタ
 ib2::PosAttProfiler::PosAttProfiler(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     rclcpp::Node("pos_att_profiler", options),
+    t0_(rclcpp::Time(0, 0, RCL_ROS_TIME)),  // 初期化時刻は0
     msg_seq_(0), pos_(options), att_(options), thr_(options)
 {
     // setMember(options);
@@ -338,8 +339,8 @@ void ib2::PosAttProfiler::setPose(const ib2_interfaces::msg::Navigation& nav)
     auto& rn(nav.pose.pose.position);
     auto& vn(nav.twist.linear);
     auto& qn(nav.pose.pose.orientation);
-    
-    t0_ = tn;
+
+    t0_ = rclcpp::Time(tn.sec, tn.nanosec, RCL_ROS_TIME);
     r0_ = Eigen::Vector3d(rn.x, rn.y, rn.z);
     v0_ = Eigen::Vector3d(vn.x, vn.y, vn.z);
     q0_ = Eigen::Quaterniond(qn.w, qn.x, qn.y, qn.z);
@@ -428,13 +429,16 @@ ib2_interfaces::msg::CtlProfile ib2::PosAttProfiler::message() const
     auto n(dt.size());
     ib2_interfaces::msg::CtlProfile p;
     // p.header.seq = ++msg_seq_;
-    p.header.stamp = t0_;
+    // p.header.stamp = t0_;
+    p.header.stamp = rclcpp::Time(t0_, RCL_ROS_TIME);
     p.header.frame_id = FRAME_ISS;
     p.poses.resize(n);
     for (size_t i = 0; i < n; ++i)
     {
         rclcpp::Duration d = rclcpp::Duration::from_seconds(dt.at(i));
-        auto s(posAttProfile(t0_ + d).status(0));
+        // auto s(posAttProfile(t0_ + d).status(0));
+        auto td = rclcpp::Time(t0_ + d, RCL_ROS_TIME);
+        auto s(posAttProfile(td).status(0));
         p.poses[i] = s.pose;
         // p.poses[i].header.seq = static_cast<uint32_t>(i);
     }
@@ -448,7 +452,7 @@ CtlElements ib2::PosAttProfiler::posAttProfile(const rclcpp::Time& t_stamp) cons
     // プロファイル開始からの経過秒
     rclcpp::Duration d(t_stamp - t0_);
     double t(d.seconds());
-//TODO    ROS_INFO("interval = %f\n",t);
+    //TODO    ROS_INFO("interval = %f\n",t);
 
     // 位置誘導プロファイル計算
     Eigen::Vector3d r, v, a;
@@ -468,7 +472,9 @@ ib2_interfaces::action::CtlCommand::Feedback ib2::PosAttProfiler::statesToGoal
 (const ib2_interfaces::msg::Navigation& nav) const
 {
     using namespace ib2_mss;
-    rclcpp::Time tn(nav.pose.header.stamp.sec, nav.pose.header.stamp.nanosec);
+    rclcpp::Time tn(nav.pose.header.stamp.sec,
+                    nav.pose.header.stamp.nanosec,
+                    RCL_ROS_TIME);
     auto& rn(nav.pose.pose.position);
     auto& qn(nav.pose.pose.orientation);
 

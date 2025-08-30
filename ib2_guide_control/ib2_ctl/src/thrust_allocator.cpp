@@ -132,37 +132,37 @@ rclcpp::Node("fan", options) // TODO: rename node to "thrust_allocator"
     static const RangeCheckerD F_MAX_RANGE
     (RangeCheckerD::TYPE::GT_LE, 0., 0.1, true);
 
-    this->set_parameter(rclcpp::Parameter("Fmax", Fmax_));
-    Fmax_ = this->get_parameter("Fmax").as_double();
-    F_MAX_RANGE.valid(Fmax_, "/fan/Fmax");
+    this->declare_parameter("fan.Fmax", Fmax_);
+    Fmax_ = this->get_parameter("fan.Fmax").as_double();
+    F_MAX_RANGE.valid(Fmax_, "fan.Fmax");
 
     int nfan(0);
-    this->set_parameter(rclcpp::Parameter("number", nfan));
-    nfan = this->get_parameter("number").as_int();
+    this->declare_parameter("fan.number", nfan);
+    nfan = this->get_parameter("fan.number").as_int();
     if (nfan != 8)
         throw std::domain_error("`number` must be 8");
     nfan_ = nfan;
     Wp_.resize(nfan, N_CONTROL);
     Wm_.resize(nfan, N_CONTROL);
 
-    std::string str_wp = "Wp/fan0";
-    std::string str_wm = "Wm/fan0";
+    std::string str_wp = "fan.Wp.fan0";
+    std::string str_wm = "fan.Wm.fan0";
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wp + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wp + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wp + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wp + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wp + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wp + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wp + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wp + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wp + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wp + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wp + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wp + std::to_string(i + 1) + ".Tz";
 
-        this->set_parameter(rclcpp::Parameter(str_fx, Wp_(i,0)));
-        this->set_parameter(rclcpp::Parameter(str_fy, Wp_(i,1)));
-        this->set_parameter(rclcpp::Parameter(str_fz, Wp_(i,2)));
-        this->set_parameter(rclcpp::Parameter(str_tx, Wp_(i,3)));
-        this->set_parameter(rclcpp::Parameter(str_ty, Wp_(i,4)));
-        this->set_parameter(rclcpp::Parameter(str_tz, Wp_(i,5)));
+        this->declare_parameter(str_fx, Wp_(i,0));
+        this->declare_parameter(str_fy, Wp_(i,1));
+        this->declare_parameter(str_fz, Wp_(i,2));
+        this->declare_parameter(str_tx, Wp_(i,3));
+        this->declare_parameter(str_ty, Wp_(i,4));
+        this->declare_parameter(str_tz, Wp_(i,5));
 
         Wp_(i,0) = this->get_parameter(str_fx).as_double();
         Wp_(i,1) = this->get_parameter(str_fy).as_double();
@@ -174,19 +174,19 @@ rclcpp::Node("fan", options) // TODO: rename node to "thrust_allocator"
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wm + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wm + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wm + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wm + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wm + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wm + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wm + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wm + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wm + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wm + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wm + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wm + std::to_string(i + 1) + ".Tz";
 
-        this->set_parameter(rclcpp::Parameter(str_fx, Wm_(i,0)));
-        this->set_parameter(rclcpp::Parameter(str_fy, Wm_(i,1)));
-        this->set_parameter(rclcpp::Parameter(str_fz, Wm_(i,2)));
-        this->set_parameter(rclcpp::Parameter(str_tx, Wm_(i,3)));
-        this->set_parameter(rclcpp::Parameter(str_ty, Wm_(i,4)));
-        this->set_parameter(rclcpp::Parameter(str_tz, Wm_(i,5)));
+        this->declare_parameter(str_fx, Wm_(i,0));
+        this->declare_parameter(str_fy, Wm_(i,1));
+        this->declare_parameter(str_fz, Wm_(i,2));
+        this->declare_parameter(str_tx, Wm_(i,3));
+        this->declare_parameter(str_ty, Wm_(i,4));
+        this->declare_parameter(str_tz, Wm_(i,5));
 
         Wm_(i,0) = this->get_parameter(str_fx).as_double();
         Wm_(i,1) = this->get_parameter(str_fy).as_double();
@@ -205,12 +205,12 @@ rclcpp::Node("fan", options) // TODO: rename node to "thrust_allocator"
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wp + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wp + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wp + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wp + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wp + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wp + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wp + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wp + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wp + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wp + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wp + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wp + std::to_string(i + 1) + ".Tz";
 
         RCLCPP_INFO(get_logger(), "%s     : %f", str_fx.c_str(), Wp_(i,0));
         RCLCPP_INFO(get_logger(), "%s     : %f", str_fy.c_str(), Wp_(i,1));
@@ -222,12 +222,12 @@ rclcpp::Node("fan", options) // TODO: rename node to "thrust_allocator"
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wm + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wm + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wm + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wm + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wm + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wm + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wm + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wm + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wm + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wm + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wm + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wm + std::to_string(i + 1) + ".Tz";
 
         RCLCPP_INFO(get_logger(), "%s     : %f", str_fx.c_str(), Wm_(i,0));
         RCLCPP_INFO(get_logger(), "%s     : %f", str_fy.c_str(), Wm_(i,1));
