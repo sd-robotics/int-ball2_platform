@@ -189,7 +189,7 @@ bool ib2::PropManager::updateParams(
 {
     RCLCPP_INFO(this->get_logger(), "Update Parameters by /prop/update_params");
 
-    res->stamp = this->get_clock()->now();
+    res->stamp = this->now();
     int err   = getParameter();
 
     if (err == 0)

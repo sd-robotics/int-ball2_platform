@@ -66,8 +66,7 @@ private:
 	 */
     int getParameter();
 
-	/** PWM制御ボード(PCA9685)にPWM信号を送信
-	 */
+	/** PWM制御ボード(PCA9685)にPWM信号を送信 */
 	void sendPWM();
 
 	/** 推進機能ノード停止 */
