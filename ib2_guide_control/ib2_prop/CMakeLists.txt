@@ -46,14 +46,6 @@ ament_target_dependencies(${PROJECT_NAME}
   "ib2_interfaces"
 )
 
-
-# Export include directories and libraries
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
-ament_export_dependencies(
-  "rclcpp"
-)
-
 #############
 ## Install ##
 #############
