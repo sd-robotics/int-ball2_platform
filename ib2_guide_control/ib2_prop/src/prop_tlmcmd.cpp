@@ -134,7 +134,7 @@ std::vector<float> ib2::PropTlmCmd::getFanDuty()
 // ファン駆動状態初期化
 void ib2::PropTlmCmd::initFanStatus(const uint8_t& status)
 {
-	fan_status_.header.stamp               = this->get_clock()->now();
+	fan_status_.header.stamp               = this->now();
 	fan_status_.header.frame_id            = "";
 
 	fan_status_.duty.layout.dim[0].size    = fan_num_;
