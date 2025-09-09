@@ -143,7 +143,7 @@ Eigen::Vector3d ib2::PosController::forceCommand
     auto dt(t - ts_);
     s_ = s_ + re * dt.seconds();
     s_ = saturation(s_, Fmax_);
-    ts_ = t;
+    ts_ = rclcpp::Time(t, RCL_ROS_TIME);
 
     //位置制御則
     Eigen::Vector3d a(p.a() - kp_ * re - ki_ * s_ - kd_ * ve);
