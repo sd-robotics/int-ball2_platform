@@ -14,12 +14,12 @@ ib2::PropManager::PropManager(const rclcpp::NodeOptions& options = rclcpp::NodeO
     init_error_id_(0)
 {
     // Declare the ROS parameters
-    this->declare_parameter<int32_t>("/prop/fan_number", FAN_NUM);
-    this->declare_parameter<std::string>("/prop/device_file_name", "");
-    this->declare_parameter<int>("/prop/device_address", 0);
-    this->declare_parameter<int>("/prop/pwm_frequency", FREQ);
-    this->declare_parameter<double>("/prop/pub_fan_status_duration", PUB_DURATION);
-    this->declare_parameter<double>("/prop/i2c_comm_duration", MON_DURATION);
+    this->declare_parameter<int32_t>("prop.fan_number", FAN_NUM);
+    this->declare_parameter<std::string>("prop.device_file_name", "");
+    this->declare_parameter<int>("prop.device_address", 0);
+    this->declare_parameter<int>("prop.pwm_frequency", FREQ);
+    this->declare_parameter<double>("prop.pub_fan_status_duration", PUB_DURATION);
+    this->declare_parameter<double>("prop.i2c_comm_duration", MON_DURATION);
 
     int  ge = getParameter();
 
@@ -116,31 +116,31 @@ int ib2::PropManager::getParameter()
 {
     int ret = 0;
 
-    fan_num_ = this->get_parameter("/prop/fan_number").as_int();
+    fan_num_ = this->get_parameter("prop.fan_number").as_int();
     if(!fan_num_)
     {
-        RCLCPP_ERROR(this->get_logger(), "Cannot Get /prop/fan_number in prop.cpp");
+        RCLCPP_ERROR(this->get_logger(), "Cannot Get prop.fan_number in prop.cpp");
         ret = ret | 0x0001;
     }
 
-    device_file_name_ = this->get_parameter("/prop/device_file_name").as_string();
+    device_file_name_ = this->get_parameter("prop.device_file_name").as_string();
     if(device_file_name_.empty())
     {
-        RCLCPP_ERROR(this->get_logger(), "Cannot Get /prop/device_file_name in prop.cpp");
+        RCLCPP_ERROR(this->get_logger(), "Cannot Get prop.device_file_name in prop.cpp");
         ret = ret | 0x0002;
     }
 
-    device_address_ = this->get_parameter("/prop/device_address").as_int();
+    device_address_ = this->get_parameter("prop.device_address").as_int();
     if(!device_address_)
     {
-        RCLCPP_ERROR(this->get_logger(), "Cannot Get /prop/device_address in prop.cpp");
+        RCLCPP_ERROR(this->get_logger(), "Cannot Get prop.device_address in prop.cpp");
         ret = ret | 0x0004;
     }
 
-    int freq = this->get_parameter("/prop/pwm_frequency").as_int();
+    int freq = this->get_parameter("prop.pwm_frequency").as_int();
     if(!freq)
     {
-        RCLCPP_ERROR(this->get_logger(), "Cannot Get /prop/pwm_frequency in prop.cpp");
+        RCLCPP_ERROR(this->get_logger(), "Cannot Get prop.pwm_frequency in prop.cpp");
         ret = ret | 0x0008;
     }
     if(freq > 0)
@@ -148,10 +148,10 @@ int ib2::PropManager::getParameter()
         pwm_frequency_ = static_cast<unsigned short>(freq);
     }
 
-    double fan_status_duration = this->get_parameter("/prop/pub_fan_status_duration").as_double();
+    double fan_status_duration = this->get_parameter("prop.pub_fan_status_duration").as_double();
     if(fan_status_duration <= 0.0)
     {
-        RCLCPP_ERROR(this->get_logger(), "Cannot Get /prop/pub_fan_status_duration in prop.cpp");
+        RCLCPP_ERROR(this->get_logger(), "Cannot Get prop.pub_fan_status_duration in prop.cpp");
         ret = ret | 0x000F;
     }
     if (fan_status_duration > 0.0)
@@ -159,10 +159,10 @@ int ib2::PropManager::getParameter()
         pub_fan_status_duration_ = rclcpp::Duration::from_seconds(fan_status_duration);
     }
 
-    double comm_duration = this->get_parameter("/prop/i2c_comm_duration").as_double();
+    double comm_duration = this->get_parameter("prop.i2c_comm_duration").as_double();
     if(comm_duration <= 0.0)
     {
-        RCLCPP_ERROR(this->get_logger(), "Cannot Get /prop/i2c_comm_duration in prop.cpp");
+        RCLCPP_ERROR(this->get_logger(), "Cannot Get prop.i2c_comm_duration in prop.cpp");
         ret = ret | 0x0010;
     }
     if (comm_duration > 0.0)
@@ -171,12 +171,12 @@ int ib2::PropManager::getParameter()
     }
 
     RCLCPP_INFO(this->get_logger(), "******** Set Parameters in prop_manager.cpp");
-    RCLCPP_INFO(this->get_logger(), "/prop/fan_number                    : %d" , fan_num_);
-    RCLCPP_INFO(this->get_logger(), "/prop/device_file_name              : %s" , device_file_name_.c_str());
-    RCLCPP_INFO(this->get_logger(), "/prop/device_address                : %x" , device_address_);
-    RCLCPP_INFO(this->get_logger(), "/prop/pwm_frequency                 : %d" , pwm_frequency_);
-    RCLCPP_INFO(this->get_logger(), "/prop/pub_fan_status_duration       : %f" , pub_fan_status_duration_.seconds());
-    RCLCPP_INFO(this->get_logger(), "/prop/i2c_comm_duration             : %f" , i2c_comm_duration_.seconds());
+    RCLCPP_INFO(this->get_logger(), "prop.fan_number                    : %d" , fan_num_);
+    RCLCPP_INFO(this->get_logger(), "prop.device_file_name              : %s" , device_file_name_.c_str());
+    RCLCPP_INFO(this->get_logger(), "prop.device_address                : %x" , device_address_);
+    RCLCPP_INFO(this->get_logger(), "prop.pwm_frequency                 : %d" , pwm_frequency_);
+    RCLCPP_INFO(this->get_logger(), "prop.pub_fan_status_duration       : %f" , pub_fan_status_duration_.seconds());
+    RCLCPP_INFO(this->get_logger(), "prop.i2c_comm_duration             : %f" , i2c_comm_duration_.seconds());
 
     return ret;
 }
@@ -187,7 +187,7 @@ bool ib2::PropManager::updateParams(
     const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
     std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res)
 {
-    RCLCPP_INFO(this->get_logger(), "Update Parameters by /prop/update_params");
+    RCLCPP_INFO(this->get_logger(), "Update Parameters by prop.update_params");
 
     res->stamp = this->now();
     int err   = getParameter();
