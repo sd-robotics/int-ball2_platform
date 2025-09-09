@@ -133,30 +133,31 @@ rclcpp::Node("fan", options)
     static const RangeCheckerD F_MAX_RANGE
     (RangeCheckerD::TYPE::GT_LE, 0., 0.1, true);
 
-    this->declare_parameter("Fmax", 0.1);
-    Fmax_ = this->get_parameter("Fmax").as_double();
-    F_MAX_RANGE.valid(Fmax_, "/fan/Fmax");
+    this->declare_parameter("fan.Fmax", 0.1);
+    Fmax_ = this->get_parameter("fan.Fmax").as_double();
+    F_MAX_RANGE.valid(Fmax_, "fan.Fmax");
 
     int nfan(0);
-    this->declare_parameter("number", 0);
-    nfan = this->get_parameter("number").as_int();
+    this->declare_parameter("fan.number", 0);
+    nfan = this->get_parameter("fan.number").as_int();
+
     if (nfan != 8)
-        throw std::domain_error("/fan/number must be 8");
+        throw std::domain_error("fan.number must be 8");
     nfan_ = nfan;
     Wp_.resize(nfan, N_CONTROL);
     Wm_.resize(nfan, N_CONTROL);
 
-    std::string str_wp = "fan/Wp/fan0";
-    std::string str_wm = "fan/Wm/fan0";
+    std::string str_wp = "fan.Wp.fan0";
+    std::string str_wm = "fan.Wm.fan0";
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wp + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wp + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wp + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wp + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wp + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wp + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wp + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wp + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wp + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wp + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wp + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wp + std::to_string(i + 1) + ".Tz";
 
         this->declare_parameter(str_fx, 0.0);
         this->declare_parameter(str_fy, 0.0);
@@ -175,12 +176,12 @@ rclcpp::Node("fan", options)
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wm + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wm + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wm + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wm + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wm + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wm + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wm + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wm + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wm + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wm + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wm + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wm + std::to_string(i + 1) + ".Tz";
 
         this->declare_parameter(str_fx, 0.0);
         this->declare_parameter(str_fy, 0.0);
@@ -201,17 +202,17 @@ rclcpp::Node("fan", options)
     RangeCheckerD::notNegative(Wm_.minCoeff(), true, "Wm");
 
     RCLCPP_INFO(this->get_logger(), "******** Set Parameters in thrust_allocator.cpp");
-    RCLCPP_INFO(this->get_logger(), "/fan/Fmax      : %f", Fmax_);
-    RCLCPP_INFO(this->get_logger(), "/fan/number    : %d", nfan);
+    RCLCPP_INFO(this->get_logger(), "fan.Fmax      : %f", Fmax_);
+    RCLCPP_INFO(this->get_logger(), "fan.number    : %d", nfan);
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wp + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wp + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wp + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wp + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wp + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wp + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wp + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wp + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wp + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wp + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wp + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wp + std::to_string(i + 1) + ".Tz";
 
         RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fx.c_str(), Wp_(i,0));
         RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fy.c_str(), Wp_(i,1));
@@ -223,12 +224,12 @@ rclcpp::Node("fan", options)
 
     for(int i = 0; i < 8; i++)
     {
-        std::string str_fx = str_wm + std::to_string(i + 1) + "/Fx";
-        std::string str_fy = str_wm + std::to_string(i + 1) + "/Fy";
-        std::string str_fz = str_wm + std::to_string(i + 1) + "/Fz";
-        std::string str_tx = str_wm + std::to_string(i + 1) + "/Tx";
-        std::string str_ty = str_wm + std::to_string(i + 1) + "/Ty";
-        std::string str_tz = str_wm + std::to_string(i + 1) + "/Tz";
+        std::string str_fx = str_wm + std::to_string(i + 1) + ".Fx";
+        std::string str_fy = str_wm + std::to_string(i + 1) + ".Fy";
+        std::string str_fz = str_wm + std::to_string(i + 1) + ".Fz";
+        std::string str_tx = str_wm + std::to_string(i + 1) + ".Tx";
+        std::string str_ty = str_wm + std::to_string(i + 1) + ".Ty";
+        std::string str_tz = str_wm + std::to_string(i + 1) + ".Tz";
 
         RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fx.c_str(), Wm_(i,0));
         RCLCPP_INFO(this->get_logger(), "%s     : %f", str_fy.c_str(), Wm_(i,1));

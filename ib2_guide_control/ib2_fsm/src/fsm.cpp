@@ -9,10 +9,6 @@
 
 #include <numeric>
 
-// マクロ宣言、後でどこか共通の*.hに移動したほうがいいかも
-#define TOPIC_CTL_DUTY    "/ctl/duty"
-#define TOPIC_CTL_WRENCH  "/ctl/wrench"    // Modification for platform packages
-
 
 //------------------------------------------------------------------------------
 // ファイルスコープ
@@ -58,8 +54,8 @@ bool ib2::Fsm::setMember()
     RangeCheckerD fj0_range
     (RangeCheckerD::TYPE::GE_LE, 0., thr_.Fmax(), true);
 
-    static const std::string ROSPARAM_PWM_MAX     ("/fan/PWMmax");
-    static const std::string ROSPARAM_N_SATURATION("/fan/n_saturation");
+    static const std::string ROSPARAM_PWM_MAX     ("fan.PWMmax");
+    static const std::string ROSPARAM_N_SATURATION("fan.n_saturation");
 
     bool ret = true;
     int nfan(thr_.nfan());
@@ -70,43 +66,43 @@ bool ib2::Fsm::setMember()
     
     this->declare_parameter(ROSPARAM_PWM_MAX, PWMmax);
     this->declare_parameter(ROSPARAM_N_SATURATION, nsaturation);
-    this->declare_parameter("/fan/kj/fan01", fan_kj(0));
-    this->declare_parameter("/fan/kj/fan02", fan_kj(1));
-    this->declare_parameter("/fan/kj/fan03", fan_kj(2));
-    this->declare_parameter("/fan/kj/fan04", fan_kj(3));
-    this->declare_parameter("/fan/kj/fan05", fan_kj(4));
-    this->declare_parameter("/fan/kj/fan06", fan_kj(5));
-    this->declare_parameter("/fan/kj/fan07", fan_kj(6));
-    this->declare_parameter("/fan/kj/fan08", fan_kj(7));
-    this->declare_parameter("/fan/fj0/fan01", fj0(0));
-    this->declare_parameter("/fan/fj0/fan02", fj0(1));
-    this->declare_parameter("/fan/fj0/fan03", fj0(2));
-    this->declare_parameter("/fan/fj0/fan04", fj0(3));
-    this->declare_parameter("/fan/fj0/fan05", fj0(4));
-    this->declare_parameter("/fan/fj0/fan06", fj0(5));
-    this->declare_parameter("/fan/fj0/fan07", fj0(6));
-    this->declare_parameter("/fan/fj0/fan08", fj0(7));
+    this->declare_parameter("fan.kj.fan01", fan_kj(0));
+    this->declare_parameter("fan.kj.fan02", fan_kj(1));
+    this->declare_parameter("fan.kj.fan03", fan_kj(2));
+    this->declare_parameter("fan.kj.fan04", fan_kj(3));
+    this->declare_parameter("fan.kj.fan05", fan_kj(4));
+    this->declare_parameter("fan.kj.fan06", fan_kj(5));
+    this->declare_parameter("fan.kj.fan07", fan_kj(6));
+    this->declare_parameter("fan.kj.fan08", fan_kj(7));
+    this->declare_parameter("fan.fj0.fan01", fj0(0));
+    this->declare_parameter("fan.fj0.fan02", fj0(1));
+    this->declare_parameter("fan.fj0.fan03", fj0(2));
+    this->declare_parameter("fan.fj0.fan04", fj0(3));
+    this->declare_parameter("fan.fj0.fan05", fj0(4));
+    this->declare_parameter("fan.fj0.fan06", fj0(5));
+    this->declare_parameter("fan.fj0.fan07", fj0(6));
+    this->declare_parameter("fan.fj0.fan08", fj0(7));
 
     PWMmax = this->get_parameter(ROSPARAM_PWM_MAX).as_double();
     nsaturation = this->get_parameter(ROSPARAM_N_SATURATION).as_int();
-    fan_kj(0) = this->get_parameter("/fan/kj/fan01").as_double();
-    fan_kj(1) = this->get_parameter("/fan/kj/fan02").as_double();
-    fan_kj(2) = this->get_parameter("/fan/kj/fan03").as_double();
-    fan_kj(3) = this->get_parameter("/fan/kj/fan04").as_double();
-    fan_kj(4) = this->get_parameter("/fan/kj/fan05").as_double();
-    fan_kj(5) = this->get_parameter("/fan/kj/fan06").as_double();
-    fan_kj(6) = this->get_parameter("/fan/kj/fan07").as_double();
-    fan_kj(7) = this->get_parameter("/fan/kj/fan08").as_double();
-    fj0(0) = this->get_parameter("/fan/fj0/fan01").as_double();
-    fj0(1) = this->get_parameter("/fan/fj0/fan02").as_double();
-    fj0(2) = this->get_parameter("/fan/fj0/fan03").as_double();
-    fj0(3) = this->get_parameter("/fan/fj0/fan04").as_double();
-    fj0(4) = this->get_parameter("/fan/fj0/fan05").as_double();
-    fj0(5) = this->get_parameter("/fan/fj0/fan06").as_double();
-    fj0(6) = this->get_parameter("/fan/fj0/fan07").as_double();
-    fj0(7) = this->get_parameter("/fan/fj0/fan08").as_double();
+    fan_kj(0) = this->get_parameter("fan.kj.fan01").as_double();
+    fan_kj(1) = this->get_parameter("fan.kj.fan02").as_double();
+    fan_kj(2) = this->get_parameter("fan.kj.fan03").as_double();
+    fan_kj(3) = this->get_parameter("fan.kj.fan04").as_double();
+    fan_kj(4) = this->get_parameter("fan.kj.fan05").as_double();
+    fan_kj(5) = this->get_parameter("fan.kj.fan06").as_double();
+    fan_kj(6) = this->get_parameter("fan.kj.fan07").as_double();
+    fan_kj(7) = this->get_parameter("fan.kj.fan08").as_double();
+    fj0(0)    = this->get_parameter("fan.fj0.fan01").as_double();
+    fj0(1)    = this->get_parameter("fan.fj0.fan02").as_double();
+    fj0(2)    = this->get_parameter("fan.fj0.fan03").as_double();
+    fj0(3)    = this->get_parameter("fan.fj0.fan04").as_double();
+    fj0(4)    = this->get_parameter("fan.fj0.fan05").as_double();
+    fj0(5)    = this->get_parameter("fan.fj0.fan06").as_double();
+    fj0(6)    = this->get_parameter("fan.fj0.fan07").as_double();
+    fj0(7)    = this->get_parameter("fan.fj0.fan08").as_double();
 
-    // TODO: パラメータの確認
+    // パラメータの確認
     ret = ret && PWMmax;
     ret = ret && nsaturation;
     ret = ret && fan_kj(0);
@@ -117,14 +113,14 @@ bool ib2::Fsm::setMember()
     ret = ret && fan_kj(5);
     ret = ret && fan_kj(6);
     ret = ret && fan_kj(7);
-    ret = ret && fj0(0);
-    ret = ret && fj0(1);
-    ret = ret && fj0(2);
-    ret = ret && fj0(3);
-    ret = ret && fj0(4);
-    ret = ret && fj0(5);
-    ret = ret && fj0(6);
-    ret = ret && fj0(7);
+    // ret = ret && fj0(0);  // TODO: check value is not nagative
+    // ret = ret && fj0(1);
+    // ret = ret && fj0(2);
+    // ret = ret && fj0(3);
+    // ret = ret && fj0(4);
+    // ret = ret && fj0(5);
+    // ret = ret && fj0(6);
+    // ret = ret && fj0(7);
 
     ret = ret && PWM_RANGE.valid(PWMmax, ROSPARAM_PWM_MAX);
     ret = ret && N_FAN_RANGE.valid(nsaturation, ROSPARAM_N_SATURATION);
@@ -141,22 +137,22 @@ bool ib2::Fsm::setMember()
     RCLCPP_INFO(this->get_logger(), "******** Set Parameters in fsm.cpp");
     RCLCPP_INFO(this->get_logger(), "%s   : %f", ROSPARAM_PWM_MAX.c_str(), pwm_max_(0));
     RCLCPP_INFO(this->get_logger(), "%s   : %d", ROSPARAM_N_SATURATION.c_str(), nsaturation_);
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan01   : %f", fan_kj_(0));
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan02   : %f", fan_kj_(1));
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan03   : %f", fan_kj_(2));
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan04   : %f", fan_kj_(3));
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan05   : %f", fan_kj_(4));
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan06   : %f", fan_kj_(5));
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan07   : %f", fan_kj_(6));
-    RCLCPP_INFO(this->get_logger(), "/fan/kj/fan08   : %f", fan_kj_(7));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan01  : %f", fj0_(0));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan02  : %f", fj0_(1));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan03  : %f", fj0_(2));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan04  : %f", fj0_(3));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan05  : %f", fj0_(4));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan06  : %f", fj0_(5));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan07  : %f", fj0_(6));
-    RCLCPP_INFO(this->get_logger(), "/fan/fj0/fan08  : %f", fj0_(7));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan01   : %f", fan_kj_(0));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan02   : %f", fan_kj_(1));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan03   : %f", fan_kj_(2));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan04   : %f", fan_kj_(3));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan05   : %f", fan_kj_(4));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan06   : %f", fan_kj_(5));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan07   : %f", fan_kj_(6));
+    RCLCPP_INFO(this->get_logger(), "fan.kj.fan08   : %f", fan_kj_(7));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan01  : %f", fj0_(0));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan02  : %f", fj0_(1));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan03  : %f", fj0_(2));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan04  : %f", fj0_(3));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan05  : %f", fj0_(4));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan06  : %f", fj0_(5));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan07  : %f", fj0_(6));
+    RCLCPP_INFO(this->get_logger(), "fan.fj0.fan08  : %f", fj0_(7));
 
     if(!ret)
         RCLCPP_ERROR(this->get_logger(), "Parameter Setting Error in fsm.cpp");
