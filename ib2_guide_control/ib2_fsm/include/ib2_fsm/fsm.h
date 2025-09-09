@@ -7,6 +7,8 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp>
 #include "ib2_ctl/thrust_allocator.h"
 
+#define TOPIC_CTL_DUTY    "/ctl/duty"
+#define TOPIC_CTL_WRENCH  "/ctl/wrench"    // Modification for platform packages
 
 namespace ib2
 {
