@@ -1,5 +1,5 @@
 # Ctl Parameter
-/**/ctl_only:
+/**:
   ros__parameters:
     ctl:
       interval_status    :  0.1
@@ -9,8 +9,8 @@
       tolerance_att      :  0.5  #  0.00872664625997165 # [rad] ->0.5 deg
       tolerance_pos_stop :  0.30 #  0.1
       tolerance_att_stop :  1.0  #  0.00872664625997165 # [rad] ->0.5 deg
-      wait_cancel        :  10.0 #  2.0
-      wait_release       :   0.0
+      wait_cancel        : 10.0 #  2.0
+      wait_release       :  0.0
       wait_calibration   : 15.0
       wait_docking       : 10.0
 
@@ -93,7 +93,7 @@
           z : 0.0
 
     #Fan Allocation Parameter
-    fan:
+    fan :
       number       : 8
       Fmax         : 60.e-3
       PWMmax       : 1.0
