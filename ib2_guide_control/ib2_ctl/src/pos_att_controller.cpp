@@ -97,11 +97,11 @@ geometry_msgs::msg::WrenchStamped ib2::PosAttController::wrenchCommand
     auto& vn(nav.twist.linear);
     auto& wn(nav.twist.angular);
 
-    rclcpp::Time t(tn, RCL_ROS_TIME);
-    Eigen::Vector3d  r(rn.x, rn.y, rn.z);
+    rclcpp::Time       t(tn, RCL_ROS_TIME);
+    Eigen::Vector3d    r(rn.x, rn.y, rn.z);
     Eigen::Quaterniond q(qn.w, qn.x, qn.y, qn.z);
-    Eigen::Vector3d  v(vn.x, vn.y, vn.z);
-    Eigen::Vector3d  w(wn.x, wn.y, wn.z);
+    Eigen::Vector3d    v(vn.x, vn.y, vn.z);
+    Eigen::Vector3d    w(wn.x, wn.y, wn.z);
 
     // 力トルクコマンド計算
     Eigen::Vector3d force  = pos_.forceCommand(t, r, v, q, p, b.m());
