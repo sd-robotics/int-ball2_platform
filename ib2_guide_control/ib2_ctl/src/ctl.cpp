@@ -295,6 +295,7 @@ void ib2::Ctl::setKeepPose()
     controller_.flash();
     auto profmsg(profiler_.setProfile(last_nav_stamp_));
     profile_pub_->publish(profmsg);
+    RCLCPP_INFO(this->get_logger(), "Set Keep Pose");
 }
 
 //------------------------------------------------------------------------------
@@ -366,7 +367,6 @@ void ib2::Ctl::target()
     profile_pub_->publish(profmsg);
     controller_.flash();
     
-    // if (guidance(goal->type.type, tolerance_pos_, tolerance_att_))
     if (guidance(goal->type.type, tolerance_pos_, tolerance_att_))
         goalTarget();
     if (dtc_.status() == Dtc::DETECT::COLLISION)
@@ -376,6 +376,8 @@ void ib2::Ctl::target()
     }
     else if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
         status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+
+    RCLCPP_INFO(this->get_logger(), "status: %d", status_);
 }
 
 //------------------------------------------------------------------------------
@@ -584,6 +586,7 @@ void ib2::Ctl::abortAction(uint8_t result_type)
     if (goal_handle_->is_active())
         // goal_handle_->canceled(std::make_shared<CtlCommand::Result>(r));
         goal_handle_->abort(std::make_shared<CtlCommand::Result>(r));
+        RCLCPP_INFO(this->get_logger(), "Aborting action with result type: %d", result_type);
 }
 
 //------------------------------------------------------------------------------
@@ -708,7 +711,7 @@ bool ib2::Ctl::reachGoal
     else if (stay)
         stay = false;
 
-    return stay && tnav - tin >= duration_goal_;
+    return stay && (tnav - tin >= duration_goal_);
 }
 
 //------------------------------------------------------------------------------
@@ -730,7 +733,7 @@ bool ib2::Ctl::reachGoalScan
     else if (stay)
         stay = false;
 
-    return stay && tnav - tin >= duration_goal_;
+    return stay && (tnav - tin >= duration_goal_);
 }
 
 //------------------------------------------------------------------------------
@@ -784,7 +787,7 @@ bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool 
         Eigen::Quaterniond qne(qn.w, qn.x, qn.y, qn.z);
         if (!ib2_mss::RangeCheckerD::positive(qne.norm(), false, "qn norm"))
         {
-            RCLCPP_INFO(this->get_logger(), "Invalid Quaternion : %f", qne.norm());
+            RCLCPP_WARN(this->get_logger(), "Invalid Quaternion : %f", qne.norm());
             return false;
         }
         qne.normalize();
@@ -793,9 +796,9 @@ bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool 
             rclcpp::Time tc(last_nav_stamp_.pose.header.stamp.sec,
                             last_nav_stamp_.pose.header.stamp.nanosec,
                             RCL_ROS_TIME);
-            if (tc >= tn)
+            if (tc >= tn)  // CHECK: Too fast?
             {
-                RCLCPP_INFO(this->get_logger(), "Invalid Navigation Stamp : current %lld.%09lld, last %lld.%09lld",
+                RCLCPP_DEBUG(this->get_logger(), "Invalid Navigation Stamp : current %lld.%09lld, last %lld.%09lld",
                         RCL_NS_TO_S(tn.nanoseconds()), tn.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(tn.nanoseconds())),
                         RCL_NS_TO_S(tc.nanoseconds()), tc.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(tc.nanoseconds())));
                 return false;
@@ -867,6 +870,8 @@ void ib2::Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal
     auto & time_to_go = feedback->time_to_go;
     auto & pose_to_go = feedback->pose_to_go;
     auto result = std::make_shared<CtlCommand::Result>();
+
+    RCLCPP_INFO(this->get_logger(), "Received goal with type: %d", goal->type.type);
 
     try 
     {
@@ -1010,6 +1015,7 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
             setKeepPose();
             status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
         }
+        RCLCPP_DEBUG(this->get_logger(), "Ctl status: %d", status_);
 
         // 制御停止判定
         static bool publishWrench = true;
@@ -1025,6 +1031,7 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
                 //fsm_->subscribeCommand(wrench);    /// Modification for platform packages
                 wrench_pub_->publish(wrench);
                 publishWrench = false;
+                RCLCPP_INFO(this->get_logger(), "Published zero Wrench");
             }
         }
         else
@@ -1049,6 +1056,7 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
             // publish
             //fsm_->subscribeCommand(wrench);    // Modification for platform packages
             wrench_pub_->publish(wrench);
+            RCLCPP_DEBUG(this->get_logger(), "Publishing Wrench");
         }
     }
     catch (const std::exception& e) 
