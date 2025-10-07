@@ -1,0 +1,100 @@
+#pragma once
+
+#include <rclcpp/rclcpp.hpp>
+#include <Eigen/Dense>
+#include <geometry_msgs/msg/wrench_stamped.hpp>
+#include "ib2_interfaces/msg/navigation.hpp"
+#include "ib2_ctl/pos_controller.h"
+#include "ib2_ctl/att_controller.h"
+#include "ib2_ctl/ctl_elements.h"
+
+namespace ib2
+{
+    // classの前方宣言
+    class CtlBody;
+    
+    /**
+     * @brief 位置制御則クラス
+     */
+    class PosAttController : public rclcpp::Node
+    {
+        //----------------------------------------------------------------------
+        // コンストラクタ/デストラクタ
+    public:
+        /** デフォルトコンストラクタ */
+        // PosAttController();
+        
+        /** rosparamによるコンストラクタ */
+        explicit PosAttController(const rclcpp::NodeOptions& options);
+
+        /** 値によるコンストラクタ */
+        // PosAttController(const PosController& pos, const AttController& att);
+        
+        /** デストラクタ */
+        ~PosAttController();
+        
+        //----------------------------------------------------------------------
+        // コピー/ムーブ
+    public:
+        /** コピーコンストラクタ. */
+        PosAttController(const PosAttController&) = delete;
+        
+        /** コピー代入演算子. */
+        PosAttController& operator=(const PosAttController&) = delete;
+        
+        /** ムーブコンストラクタ. */
+        PosAttController(PosAttController&&) = default;
+        
+        /** ムーブ代入演算子. */
+        PosAttController& operator=(PosAttController&&) = default;
+        
+        //----------------------------------------------------------------------
+        // 操作(Setter)
+    public:
+        /** 位置制御パラメータの設定
+         * @param [in] p 位置制御パラメータ
+         */
+        // bool setConfigPos(const PosController& pos);
+        
+        /** 姿勢制御パラメータの設定
+         * @param [in] p 姿勢制御パラメータ
+         */
+        // bool setConfigAtt(const AttController& att);
+        
+        /** 位置制御積分量のクリア */
+        void flash();
+        
+        //----------------------------------------------------------------------
+        // 実装
+    public:
+        /** 制御停止時の力トルクコマンドの計算
+         * @param [in] t コマンド時刻
+         * @return 力トルクコマンドメッセージ
+         */
+        geometry_msgs::msg::WrenchStamped wrenchCommandStop(const rclcpp::Time& t);
+        
+        /** 力トルクコマンドの計算
+         * @param [in] nav 航法値
+         * @param [in] p 制御目標値
+         * @param [in] b 機体質量特性
+         * @return 力トルクコマンドメッセージ
+         */
+        geometry_msgs::msg::WrenchStamped wrenchCommand
+        (const ib2_interfaces::msg::Navigation& nav, 
+         const CtlElements& p, const CtlBody& b);
+        
+        //----------------------------------------------------------------------
+        // メンバ変数
+    private:
+        /** 力トルクコマンドシーケンスID */
+        uint32_t seq_;
+        
+        /** 位置制御則パラメータ */
+        PosController pos_;
+        
+        /** 姿勢制御則パラメータ */
+        AttController att_;
+    };
+}
+
+// End Of File -----------------------------------------------------------------

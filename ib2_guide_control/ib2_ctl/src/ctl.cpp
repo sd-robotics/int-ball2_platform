@@ -1,0 +1,1093 @@
+
+#include "ib2_ctl/ctl.h"
+// #include "ib2_ctl/ctl_body.h"
+#include "ib2_ctl/pos_controller.h"
+#include "ib2_ctl/att_controller.h"
+// #include "ib2_ctl/pos_att_controller.h"
+#include "ib2_ctl/pos_profiler.h"
+#include "ib2_ctl/att_profiler.h"
+// #include "ib2_ctl/pos_att_profiler.h"
+#include "ib2_interfaces/srv/marker_correction.hpp"
+
+#include "ib2_ctl_common/Log.h"
+#include "ib2_ctl_common/Constants.h"
+#include "ib2_ctl_common/Utility.h"
+#include "ib2_ctl_common/RangeChecker.h"
+
+#include <Eigen/Core>
+
+#include <sstream>
+#include <stdexcept>
+#include <cmath>
+#include <chrono>
+
+//------------------------------------------------------------------------------
+// ファイルスコープ
+namespace
+{
+    /** 制御目標アクションの名前 */
+    const std::string COMMAND_ACTION("/ctl/command");
+    
+    /** パラメータ更新サービスの名前 */
+    const std::string UPDATE_SERVICE("/ctl/update_params");
+}
+
+//------------------------------------------------------------------------------
+// コンストラクタ
+ib2::Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
+    rclcpp::Node("ctl", options),
+    dtc_(options), body_(options),
+    controller_(options), profiler_(options),
+    seq_status_(0),
+    valid_navigation_(false),
+    interval_status_(0, 0),
+    interval_feedback_(0, 0),
+    duration_goal_(0, 0),
+    waitCancel_(0, 0),
+    waitRelease_(0, 0),
+    waitCalibration_(0, 0),
+    waitDocking_(0, 0)
+{
+    RCLCPP_INFO(this->get_logger(), "******** Starting Ctl Node");
+    
+    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    setMember();
+
+    // Action server
+    command_as_ = rclcpp_action::create_server<ib2_interfaces::action::CtlCommand>(
+        this,
+        COMMAND_ACTION,
+        std::bind(&ib2::Ctl::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&ib2::Ctl::handle_cancel, this, std::placeholders::_1),
+        std::bind(&ib2::Ctl::handle_accepted, this, std::placeholders::_1));
+    // command_as_.start();
+    
+    // Service server
+    update_ss_ = this->create_service<ib2_interfaces::srv::UpdateParameter>(
+        UPDATE_SERVICE, std::bind(&ib2::Ctl::updateCallback, this, std::placeholders::_1, std::placeholders::_2));
+    
+    // Service client
+    marker_sc_ = this->create_client<ib2_interfaces::srv::MarkerCorrection>(
+        "/sensor_fusion/marker_correction");
+    
+    // TODO: configure QoS
+
+    // Subscribers
+    navinfo_sub_ = this->create_subscription<ib2_interfaces::msg::Navigation>(
+        TOPIC_NAV_POSE, 5, std::bind(&ib2::Ctl::navinfoCallback, this, std::placeholders::_1));
+
+    // Advertised messages
+    wrench_pub_ = this->create_publisher<geometry_msgs::msg::WrenchStamped>(
+        TOPIC_CTL_WRENCH, 5);
+
+    // Advertised messages
+    profile_pub_ = this->create_publisher<ib2_interfaces::msg::CtlProfile>(
+        TOPIC_CTL_PROFILE, 5);
+    status_pub_  = this->create_publisher<ib2_interfaces::msg::CtlStatus>(
+        TOPIC_CTL_STATUS, 5);
+
+    timer_ = this->create_wall_timer(
+        std::chrono::nanoseconds(interval_status_.nanoseconds()),
+        std::bind(&ib2::Ctl::timerCallback, this));
+
+}
+
+//------------------------------------------------------------------------------
+// デストラクタ
+ib2::Ctl::~Ctl() = default;
+
+//------------------------------------------------------------------------------
+// メンバ設定
+bool ib2::Ctl::setMember()
+{
+    using namespace ib2_mss;
+    // TODO : メンバを保存
+    try 
+    {
+        static const RangeCheckerD INTERVAL_RANGE
+        (RangeCheckerD::TYPE::GE, 0.1, true);
+        
+        // ib2::CtlBody body(this->get_node_options());
+        // ib2::PosController ctl_pos(this->get_node_options());
+        // ib2::AttController ctl_att(this->get_node_options());
+        // ib2::PosProfiler prof_pos(this->get_node_options());
+        // ib2::AttProfiler prof_att(this->get_node_options());
+        // ib2::ThrustAllocator thr(this->get_node_options());
+        
+        static const std::string ROSPARAM_INTERVAL_STATUS   ("ctl.interval_status");
+        static const std::string ROSPARAM_INTERVAL_FEEDBACK ("ctl.interval_feedback");
+        static const std::string ROSPARAM_DURATION_GOAL     ("ctl.duration_goal");
+        static const std::string ROSPARAM_TOLERANCE_POS     ("ctl.tolerance_pos");
+        static const std::string ROSPARAM_TOLERANCE_ATT     ("ctl.tolerance_att");
+        static const std::string ROSPARAM_TOLERANCE_POS_STOP("ctl.tolerance_pos_stop");
+        static const std::string ROSPARAM_TOLERANCE_ATT_STOP("ctl.tolerance_att_stop");
+        static const std::string ROSPARAM_WAIT_CANCEL       ("ctl.wait_cancel");
+        static const std::string ROSPARAM_WAIT_RELEASE      ("ctl.wait_release");
+        static const std::string ROSPARAM_WAIT_CALIBRATION  ("ctl.wait_calibration");
+        static const std::string ROSPARAM_WAIT_DOCKING      ("ctl.wait_docking");
+        static const std::string ROSPARAM_NAV_COUNTER       ("navigation_check.nc");
+        static const std::string ROSPARAM_NAV_DR            ("navigation_check.dr");
+        static const std::string ROSPARAM_NAV_DV            ("navigation_check.dv");
+        static const std::string ROSPARAM_NAV_DA            ("navigation_check.da");
+        static const std::string ROSPARAM_NAV_DQ            ("navigation_check.dq");
+        static const std::string ROSPARAM_NAV_DW            ("navigation_check.dw");
+
+        double interval_status   (-1.);
+        double interval_feedback (-1.);
+        double duration_goal     (-1.);
+        double tolerance_pos     (-1.);
+        double tolerance_att     (-1.);
+        double tolerance_pos_stop(-1.);
+        double tolerance_att_stop(-1.);
+        double wait_cancel       (-1.);
+        double wait_release      (-1.);
+        double wait_calibration  (-1.);
+        double wait_docking      (-1.);
+        int32_t nav_counter(-1);
+        double nav_dr(-1.);
+        double nav_dv(-1.);
+        double nav_da(-1.);
+        double nav_dq(-1.);
+        double nav_dw(-1.);
+        
+        // Declare parameters
+        this->declare_parameter(ROSPARAM_INTERVAL_STATUS   , interval_status);
+        this->declare_parameter(ROSPARAM_INTERVAL_FEEDBACK , interval_feedback);
+        this->declare_parameter(ROSPARAM_DURATION_GOAL     , duration_goal);
+        this->declare_parameter(ROSPARAM_TOLERANCE_POS     , tolerance_pos);
+        this->declare_parameter(ROSPARAM_TOLERANCE_ATT     , tolerance_att);
+        this->declare_parameter(ROSPARAM_TOLERANCE_POS_STOP, tolerance_pos_stop);
+        this->declare_parameter(ROSPARAM_TOLERANCE_ATT_STOP, tolerance_att_stop);
+        this->declare_parameter(ROSPARAM_WAIT_CANCEL       , wait_cancel);
+        this->declare_parameter(ROSPARAM_WAIT_RELEASE      , wait_release);
+        this->declare_parameter(ROSPARAM_WAIT_CALIBRATION  , wait_calibration);
+        this->declare_parameter(ROSPARAM_WAIT_DOCKING      , wait_docking);
+        this->declare_parameter(ROSPARAM_NAV_COUNTER       , nav_counter);
+        this->declare_parameter(ROSPARAM_NAV_DR            , nav_dr);
+        this->declare_parameter(ROSPARAM_NAV_DV            , nav_dv);
+        this->declare_parameter(ROSPARAM_NAV_DA            , nav_da);
+        this->declare_parameter(ROSPARAM_NAV_DQ            , nav_dq);
+        this->declare_parameter(ROSPARAM_NAV_DW            , nav_dw);
+
+        // Get parameters
+        interval_status    = this->get_parameter(ROSPARAM_INTERVAL_STATUS).as_double();
+        interval_feedback  = this->get_parameter(ROSPARAM_INTERVAL_FEEDBACK).as_double();
+        duration_goal      = this->get_parameter(ROSPARAM_DURATION_GOAL).as_double();
+        tolerance_pos      = this->get_parameter(ROSPARAM_TOLERANCE_POS).as_double();
+        tolerance_att      = this->get_parameter(ROSPARAM_TOLERANCE_ATT).as_double();
+        tolerance_pos_stop = this->get_parameter(ROSPARAM_TOLERANCE_POS_STOP).as_double();
+        tolerance_att_stop = this->get_parameter(ROSPARAM_TOLERANCE_ATT_STOP).as_double();
+        wait_cancel        = this->get_parameter(ROSPARAM_WAIT_CANCEL).as_double();
+        wait_release       = this->get_parameter(ROSPARAM_WAIT_RELEASE).as_double();
+        wait_calibration   = this->get_parameter(ROSPARAM_WAIT_CALIBRATION).as_double();
+        wait_docking       = this->get_parameter(ROSPARAM_WAIT_DOCKING).as_double();
+        nav_counter        = this->get_parameter(ROSPARAM_NAV_COUNTER).as_int();
+        nav_dr             = this->get_parameter(ROSPARAM_NAV_DR).as_double();
+        nav_dv             = this->get_parameter(ROSPARAM_NAV_DV).as_double();
+        nav_da             = this->get_parameter(ROSPARAM_NAV_DA).as_double();
+        nav_dq             = this->get_parameter(ROSPARAM_NAV_DQ).as_double();
+        nav_dw             = this->get_parameter(ROSPARAM_NAV_DW).as_double();
+
+        // Check parameters
+        INTERVAL_RANGE.valid(interval_status  , ROSPARAM_INTERVAL_STATUS);
+        INTERVAL_RANGE.valid(interval_feedback, ROSPARAM_INTERVAL_FEEDBACK);
+        RangeCheckerD::positive(duration_goal     , true, ROSPARAM_DURATION_GOAL);
+        RangeCheckerD::positive(tolerance_pos     , true, ROSPARAM_TOLERANCE_POS);
+        RangeCheckerD::positive(tolerance_att     , true, ROSPARAM_TOLERANCE_ATT);
+        RangeCheckerD::positive(tolerance_pos_stop, true, ROSPARAM_TOLERANCE_POS_STOP);
+        RangeCheckerD::positive(tolerance_att_stop, true, ROSPARAM_TOLERANCE_ATT_STOP);
+        RangeCheckerD::notNegative(wait_cancel     , true, ROSPARAM_WAIT_CANCEL);
+        RangeCheckerD::notNegative(wait_release    , true, ROSPARAM_WAIT_RELEASE);
+        RangeCheckerD::notNegative(wait_calibration, true, ROSPARAM_WAIT_CALIBRATION);
+        RangeCheckerD::notNegative(wait_docking    , true, ROSPARAM_WAIT_DOCKING);
+        RangeCheckerI32::positive(nav_counter, true, ROSPARAM_NAV_COUNTER);
+        RangeCheckerD::positive(nav_dr, true, ROSPARAM_NAV_DR);
+        RangeCheckerD::positive(nav_dv, true, ROSPARAM_NAV_DV);
+        RangeCheckerD::positive(nav_da, true, ROSPARAM_NAV_DA);
+        RangeCheckerD::positive(nav_dq, true, ROSPARAM_NAV_DQ);
+        RangeCheckerD::positive(nav_dw, true, ROSPARAM_NAV_DW);
+
+        dtc_.setMember();
+
+        interval_status_    = rclcpp::Duration::from_seconds(interval_status);
+        interval_feedback_  = rclcpp::Duration::from_seconds(interval_feedback);
+        duration_goal_      = rclcpp::Duration::from_seconds(duration_goal);
+        tolerance_pos_      = tolerance_pos;
+        tolerance_att_      = tolerance_att;
+        tolerance_pos_stop_ = tolerance_pos_stop;
+        tolerance_att_stop_ = tolerance_att_stop;
+        waitCancel_         = rclcpp::Duration::from_seconds(wait_cancel);
+        waitRelease_        = rclcpp::Duration::from_seconds(wait_release);
+        waitCalibration_    = rclcpp::Duration::from_seconds(wait_calibration);
+        waitDocking_        = rclcpp::Duration::from_seconds(wait_docking);
+        nav_counter_ = static_cast<size_t>(nav_counter);
+        nav_dr_ = nav_dr;
+        nav_dv_ = nav_dv;
+        nav_da_ = nav_da;
+        nav_dq_ = nav_dq;
+        nav_dw_ = nav_dw;
+
+        // Log parameters
+        RCLCPP_INFO(this->get_logger(), "******** Set Parameters in ctl.cpp");
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_INTERVAL_STATUS.c_str()      , RCL_NS_TO_S(interval_status_.nanoseconds())  , interval_status_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(interval_status_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_INTERVAL_FEEDBACK.c_str()    , RCL_NS_TO_S(interval_feedback_.nanoseconds()), interval_feedback_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(interval_feedback_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_DURATION_GOAL.c_str()        , RCL_NS_TO_S(duration_goal_.nanoseconds())    , duration_goal_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(duration_goal_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_POS.c_str()        , tolerance_pos_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_ATT.c_str()        , tolerance_att_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_POS_STOP.c_str()   , tolerance_pos_stop_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_TOLERANCE_ATT_STOP.c_str()   , tolerance_att_stop_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_CANCEL.c_str()          , RCL_NS_TO_S(waitCancel_.nanoseconds())     , waitCancel_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitCancel_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_RELEASE.c_str()         , RCL_NS_TO_S(waitRelease_.nanoseconds())    , waitRelease_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitRelease_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_CALIBRATION.c_str()     , RCL_NS_TO_S(waitCalibration_.nanoseconds()), waitCalibration_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitCalibration_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %lld.%09lld", ROSPARAM_WAIT_DOCKING.c_str()         , RCL_NS_TO_S(waitDocking_.nanoseconds())    , waitDocking_.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(waitDocking_.nanoseconds())));
+        RCLCPP_INFO(this->get_logger(), "%s   : %zd"        , ROSPARAM_NAV_COUNTER.c_str()          , nav_counter_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DR.c_str()               , nav_dr_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DV.c_str()               , nav_dv_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DA.c_str()               , nav_da_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DQ.c_str()               , nav_dq_);
+        RCLCPP_INFO(this->get_logger(), "%s   : %f"         , ROSPARAM_NAV_DW.c_str()               , nav_dw_);
+
+        // if (timer_.isValid())
+        //     timer_.setPeriod(interval_status_);
+        
+        // TODO: check if initialization is properly done
+        // if (controller_)
+        // {
+        //     controller_.setConfigPos(ctl_pos);
+        //     controller_.setConfigAtt(ctl_att);
+        // }
+        // else
+        //     controller_.reset(new ib2::PosAttController(ctl_pos, ctl_att));
+        // if (profiler_)
+        // {
+        //     profiler_.setConfigPos(prof_pos);
+        //     profiler_.setConfigAtt(prof_att);
+        //     profiler_.setConfigThr(thr);
+        // }
+        // else
+        //     profiler_.reset(new ib2::PosAttProfiler(prof_pos, prof_att, thr));
+
+        // Modification for platform packages
+        //if (fsm_)s
+        //    fsm_->setMember(thr);
+        //else
+        //    fsm_ = std::unique_ptr<Fsm>(new Fsm(nh_));
+
+        // body_.reset(new ib2::CtlBody(body));
+        return true;
+    }
+    catch (const std::exception& e) 
+    {
+        std::string what(Log::caughtException(e.what()));
+        RCLCPP_ERROR(this->get_logger(), "%s", what.c_str());
+        return false;
+    }
+    catch (...) 
+    {
+        return false;
+    }
+}
+
+//------------------------------------------------------------------------------
+// 位置姿勢保持設定
+void ib2::Ctl::setKeepPose()
+{
+    controller_.flash();
+    auto profmsg(profiler_.setProfile(last_nav_stamp_));
+    profile_pub_->publish(profmsg);
+    RCLCPP_INFO(this->get_logger(), "Set Keep Pose");
+}
+
+//------------------------------------------------------------------------------
+// 制御目標への誘導
+bool ib2::Ctl::guidance(
+    int32_t goal_type, double tolp, double tola)
+{
+    rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
+                      last_nav_stamp_.pose.header.stamp.nanosec,
+                      RCL_ROS_TIME);
+    auto tfb = tnav;
+    auto tbGoal = tnav;
+    bool stayGoal(false);
+    while (true)
+    {
+        if (!goal_handle_->is_active())
+            break;
+        tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
+        if (this->now() - tnav >= waitCancel_)
+        {
+            timeoutNavigation();
+            break;
+        }
+        auto fb = profiler_.statesToGoal(last_nav_stamp_);
+        if (tnav - tfb >= interval_feedback_)
+        {
+            goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
+            tfb = this->now();
+        }
+        if (goal_type == ib2_interfaces::msg::CtlStatusType::SCAN ? 
+            reachGoalScan(stayGoal, tbGoal, tnav, fb, tola):
+            reachGoal(stayGoal, tbGoal, tnav, fb, tolp, tola))
+            return true;
+        if (dtc_.status() == Dtc::DETECT::COLLISION)
+        {
+            cancelTarget(status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ||
+                         status_ == ib2_interfaces::msg::CtlStatusType::RELEASE);
+            abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
+            break;
+        }
+        if (goal_handle_->is_canceling() || !rclcpp::ok())
+        {
+            abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
+            if (goal_handle_->is_active())
+                status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+            else if (goal_type == ib2_interfaces::msg::CtlStatusType::STOP_MOVING)
+                setKeepPose();
+            else 
+            {
+                cancelTarget(status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ||
+                             status_ == ib2_interfaces::msg::CtlStatusType::RELEASE);
+            }
+            break;
+        }
+    }
+    return false;
+}
+
+//------------------------------------------------------------------------------
+// ターゲットモードの処理
+void ib2::Ctl::target()
+{
+    auto goal = goal_handle_->get_goal();
+    status_ = goal->type.type;
+
+    auto profmsg(profiler_.setProfile(last_nav_stamp_, goal, body_));
+    profile_pub_->publish(profmsg);
+    controller_.flash();
+    
+    if (guidance(goal->type.type, tolerance_pos_, tolerance_att_))
+        goalTarget();
+    if (dtc_.status() == Dtc::DETECT::COLLISION)
+    {
+        dtc_.clearStatus();
+        status_ = ib2_interfaces::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
+    }
+    else if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
+        status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+
+    RCLCPP_INFO(this->get_logger(), "status: %d", status_);
+}
+
+//------------------------------------------------------------------------------
+// リリースモードの処理
+void ib2::Ctl::release()
+{
+    if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
+        abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+    else
+    {       
+        setKeepPose();
+        controller_.flash();
+        rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
+                          last_nav_stamp_.pose.header.stamp.nanosec,
+                          RCL_ROS_TIME);
+        auto tfb(tnav);
+        auto toff(tnav + waitRelease_);
+        while (tnav < toff)
+        {
+            tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                                last_nav_stamp_.pose.header.stamp.nanosec,
+                                RCL_ROS_TIME);
+            auto fb = profiler_.statesToGoal(last_nav_stamp_);
+            if (tnav - tfb >= interval_feedback_)
+            {
+                goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
+                tfb = tnav;
+            }
+            if (goal_handle_->is_canceling() || !rclcpp::ok())
+            {
+                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
+                status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+                return;
+            }
+        }
+
+        status_ = ib2_interfaces::msg::CtlStatusType::RELEASE;
+        auto ipos(ib2::PosAttProfiler::DOCKING_POS::AIP);
+        auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
+        auto profmsg(profiler_.dockingProfile(last_nav_stamp_, ipos, iatt, body_));
+        profile_pub_->publish(profmsg);
+        controller_.flash();
+        if (guidance(ib2_interfaces::msg::CtlStatusType::RELEASE, tolerance_pos_, tolerance_att_))
+            goalTarget();
+        if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
+            status_  = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+    }
+}
+
+//------------------------------------------------------------------------------
+// ホーミングモードの処理
+void ib2::Ctl::docking(bool correction)
+{
+    bool goaled(false);
+    int32_t start_status_ = (correction ? ib2_interfaces::msg::CtlStatusType::MOVING_TO_AIA_AIP : 
+                                          ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP);
+    for (status_  = start_status_; 
+         status_ <= ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP; ++status_)
+    {
+        auto ipos(status_ < ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ?
+                  ib2::PosAttProfiler::DOCKING_POS::AIP : 
+                  ib2::PosAttProfiler::DOCKING_POS::RDP);
+        auto iatt(status_ < ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP ? 
+                  ib2::PosAttProfiler::DOCKING_ATT::AIA : 
+                  ib2::PosAttProfiler::DOCKING_ATT::RDA);
+        auto profmsg(profiler_.dockingProfile(last_nav_stamp_, ipos, iatt, body_));
+        profile_pub_->publish(profmsg);
+        controller_.flash();
+        
+        if (!guidance(ib2_interfaces::msg::CtlStatusType::DOCK, 
+                      tolerance_pos_stop_, tolerance_att_stop_))
+            break;
+        else if (status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_AIA_AIP)
+        {
+            auto request = std::make_shared<ib2_interfaces::srv::MarkerCorrection::Request>();
+            // TODO: wait for service to be available
+            auto result = marker_sc_->async_send_request(request);
+
+            // Wait for the result.
+            if (rclcpp::spin_until_future_complete(this->shared_from_this(), result) !=
+                rclcpp::FutureReturnCode::SUCCESS)
+            {
+                RCLCPP_ERROR(this->get_logger(), "Failed to call marker_correction service");
+                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
+                break;
+            }
+
+            if (!result.get()->status)
+            {
+                RCLCPP_ERROR(this->get_logger(), "Marker correction failed");
+                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
+                break;
+            }
+        }
+        else if (status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP)
+            goaled = true;
+        if (reachGoalDock())
+            return;
+    }
+    setKeepPose();
+    controller_.flash();
+    if (goaled)
+    {
+        status_ = ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY;
+        dockingStandBy();
+    }
+    else if (dtc_.status() == Dtc::DETECT::COLLISION)
+    {
+        dtc_.clearStatus();
+        status_ = ib2_interfaces::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
+    }
+    else if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
+        status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+}
+
+//------------------------------------------------------------------------------
+// ドッキングモードの処理
+void ib2::Ctl::dockingStandBy()
+{
+    rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
+                      last_nav_stamp_.pose.header.stamp.nanosec,
+                      RCL_ROS_TIME);
+    auto tfb(tnav);
+    auto toff(tnav + waitDocking_);
+
+    controller_.flash();
+    auto profmsg(profiler_.setProfile(dtc_.dockingTarget(tnav)));
+    profile_pub_->publish(profmsg);
+
+    bool aborted(false);
+    while (tnav < toff)
+    {
+        tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
+        auto fb = profiler_.statesToGoal(last_nav_stamp_);
+        if (tnav - tfb >= interval_feedback_)
+        {
+            goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
+            tfb = tnav;
+        }
+        if (reachGoalDock())
+            return;
+        if (goal_handle_->is_canceling() || !rclcpp::ok())
+        {
+            aborted = true;
+            break;
+        }
+    }
+    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    abortAction(aborted ?
+                CtlCommand::Result::TERMINATE_ABORTED :
+                CtlCommand::Result::TERMINATE_TIME_OUT);
+}
+
+//------------------------------------------------------------------------------
+// スキャンモードの処理
+void ib2::Ctl::scan()
+{
+    status_ = ib2_interfaces::msg::CtlStatusType::SCAN;
+    size_t nscan(profiler_.nscan());
+    for (size_t i = 0; i < nscan; ++i)
+    {
+        auto profmsg(profiler_.scanProfile(last_nav_stamp_, i, body_));
+        profile_pub_->publish(profmsg);
+        controller_.flash();
+        
+        if (!guidance(ib2_interfaces::msg::CtlStatusType::SCAN, 
+                      tolerance_pos_stop_, tolerance_att_stop_))
+        {
+            status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+            break;
+        }
+        else if (i + 1 == nscan)
+        {
+            ib2_interfaces::action::CtlCommand::Result r;
+            r.stamp = this->now();
+            r.type = ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV;
+            goal_handle_->succeed(std::make_shared<CtlCommand::Result>(r));
+            status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+// 停止誘導モードの処理
+void ib2::Ctl::stopping()
+{
+    status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
+    auto profmsg(profiler_.stoppingProfile(last_nav_stamp_, body_));
+    profile_pub_->publish(profmsg);
+    controller_.flash();
+    if (guidance(ib2_interfaces::msg::CtlStatusType::STOP_MOVING, 
+                 tolerance_pos_stop_, tolerance_att_stop_))
+        goalTarget();
+    status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+}
+
+//------------------------------------------------------------------------------
+// アクション中止
+void ib2::Ctl::abortAction(uint8_t result_type)
+{
+    ib2_interfaces::action::CtlCommand::Result r;
+    r.stamp = this->now();
+    r.type = result_type;
+    if (goal_handle_->is_active())
+        // goal_handle_->canceled(std::make_shared<CtlCommand::Result>(r));
+        goal_handle_->abort(std::make_shared<CtlCommand::Result>(r));
+        RCLCPP_INFO(this->get_logger(), "Aborting action with result type: %d", result_type);
+}
+
+//------------------------------------------------------------------------------
+// 制御目標キャンセル時の処理
+void ib2::Ctl::cancelTarget(bool docking)
+{
+    RCLCPP_INFO(this->get_logger(), "%s: Preempted", COMMAND_ACTION.c_str());
+    status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
+    auto profmsg(profiler_.stoppingProfile(last_nav_stamp_, body_));
+    profile_pub_->publish(profmsg);
+    controller_.flash();
+
+    rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
+                      last_nav_stamp_.pose.header.stamp.nanosec,
+                      RCL_ROS_TIME);
+    auto tbGoal = tnav;
+    bool stayGoal(false);
+    auto te(profiler_.te() + waitCancel_);
+    while (tnav < te)
+    {
+        tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
+        if (this->now() - tnav >= waitCancel_)
+        {
+            timeoutNavigation();
+            break;
+        }
+        auto fb = profiler_.statesToGoal(last_nav_stamp_);
+        if (reachGoal(stayGoal, tbGoal, tnav, fb,
+                      tolerance_pos_stop_, tolerance_att_stop_))
+            break;
+    }
+
+    if (docking)
+    {
+        status_ = ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP;
+        auto ipos(ib2::PosAttProfiler::DOCKING_POS::AIP);
+        auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
+        auto profmsg(profiler_.dockingProfile
+                     (last_nav_stamp_, ipos, iatt, body_));
+        profile_pub_->publish(profmsg);
+        controller_.flash();
+
+        rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
+                          last_nav_stamp_.pose.header.stamp.nanosec,
+                          RCL_ROS_TIME);
+        auto tbGoal = tnav;
+        bool stayGoal(false);
+        auto te(profiler_.te() + waitCancel_);
+        while (tnav < te)
+        {
+            tnav = rclcpp::Time(last_nav_stamp_.pose.header.stamp.sec,
+                                last_nav_stamp_.pose.header.stamp.nanosec,
+                                RCL_ROS_TIME);
+            if (this->now() - tnav >= waitCancel_)
+            {
+                timeoutNavigation();
+                break;
+            }
+            auto fb = profiler_.statesToGoal(last_nav_stamp_);
+            if (reachGoal(stayGoal, tbGoal, tnav, fb,
+                          tolerance_pos_stop_, tolerance_att_stop_))
+                break;
+        }
+    }
+    controller_.flash();
+}
+
+//------------------------------------------------------------------------------
+// 制御目標到達時の処理
+void ib2::Ctl::goalTarget()
+{
+    RCLCPP_INFO(this->get_logger(), "%s: Succeeded", COMMAND_ACTION.c_str());
+    CtlCommand::Result r;
+    r.stamp = this->now();
+    r.type = CtlCommand::Result::TERMINATE_SUCCESS;
+    goal_handle_->succeed(std::make_shared<CtlCommand::Result>(r));
+    controller_.flash();
+}
+
+//------------------------------------------------------------------------------
+// 航法メッセージのタイムアウト処理
+void ib2::Ctl::timeoutNavigation()
+{
+    RCLCPP_WARN(this->get_logger(), "Navigation message timed out");
+
+    abortAction(CtlCommand::Result::TERMINATE_INVALID_NAV);
+    setKeepPose();
+    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+
+    auto tn = rclcpp::Time(this->now(),
+                           RCL_ROS_TIME);
+    auto wrench = controller_.wrenchCommandStop(tn);
+    //fsm_->subscribeCommand(wrench);    // Modification for platform packages
+    wrench_pub_->publish(wrench);
+}
+
+//------------------------------------------------------------------------------
+// 制御目標到達判定
+bool ib2::Ctl::reachGoal
+(bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
+ const ib2_interfaces::action::CtlCommand::Feedback& fb, double tolp, double tola)
+{
+    using namespace ib2_mss;
+    auto& rgo(fb.pose_to_go.position);
+    double rmax(std::max(std::abs(rgo.x), std::abs(rgo.y)));
+    rmax = std::max(rmax, std::abs(rgo.z));
+    double dx(rgo.x / rmax);
+    double dy(rgo.y / rmax);
+    double dz(rgo.z / rmax);
+    double dgo(rmax * sqrt(dx * dx + dy * dy + dz * dz));
+    double qgo(2. * acos(fb.pose_to_go.orientation.w));
+    qgo = Utility::cyclicRange(qgo, -M_PI, M_PI);
+
+    if (std::abs(dgo) < tolp && std::abs(qgo) < tola)
+    {
+        if (!stay)
+            tin = rclcpp::Time(tnav, RCL_ROS_TIME);
+        stay = true;
+    }
+    else if (stay)
+        stay = false;
+
+    return stay && (tnav - tin >= duration_goal_);
+}
+
+//------------------------------------------------------------------------------
+// 制御目標到達判定(SCAN)
+bool ib2::Ctl::reachGoalScan
+(bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
+ const ib2_interfaces::action::CtlCommand::Feedback& fb, double tola)
+{
+    using namespace ib2_mss;
+    double qgo(2. * acos(fb.pose_to_go.orientation.w));
+    qgo = Utility::cyclicRange(qgo, -M_PI, M_PI);
+
+    if (std::abs(qgo) < tola)
+    {
+        if (!stay)
+            tin = rclcpp::Time(tnav, RCL_ROS_TIME);
+        stay = true;
+    }
+    else if (stay)
+        stay = false;
+
+    return stay && (tnav - tin >= duration_goal_);
+}
+
+//------------------------------------------------------------------------------
+// 制御目標到達判定(DOCK)
+bool ib2::Ctl::reachGoalDock()
+{
+    if (dtc_.status() != Dtc::DETECT::DOCKING)
+        return false;
+
+    goalTarget();
+    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    dtc_.clearStatus();
+    return true;
+}
+
+//------------------------------------------------------------------------------
+// 制御目標妥当性確認
+bool ib2::Ctl::validCommand(const std::shared_ptr<const CtlCommand::Goal>& goal) const
+{
+    auto& drg(goal->target.pose.position);
+    auto& dqg(goal->target.pose.orientation);
+    if (std::isfinite(drg.x) && std::isfinite(drg.y) && std::isfinite(drg.z) &&
+        std::isfinite(dqg.x) && std::isfinite(dqg.y) && std::isfinite(dqg.z) &&
+        std::isfinite(dqg.w))
+    {
+        Eigen::Quaterniond dq(dqg.w, dqg.x, dqg.y, dqg.z);
+        return ib2_mss::RangeCheckerD::positive(dq.norm(), false, "dq norm");
+    }
+    return false;
+}
+
+//------------------------------------------------------------------------------
+// 航法メッセージ妥当性確認
+bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first) const
+{
+    rclcpp::Time tn(nav.pose.header.stamp.sec,
+                    nav.pose.header.stamp.nanosec,
+                    RCL_ROS_TIME);
+    auto& rn(nav.pose.pose.position);
+    auto& qn(nav.pose.pose.orientation);
+    auto& vn(nav.twist.linear);
+    auto& wn(nav.twist.angular);
+    auto& an(nav.a);
+    if (std::isfinite(rn.x) && std::isfinite(rn.y) && std::isfinite(rn.z) &&
+        std::isfinite(vn.x) && std::isfinite(vn.y) && std::isfinite(vn.z) &&
+        std::isfinite(an.x) && std::isfinite(an.y) && std::isfinite(an.z) &&
+        std::isfinite(wn.x) && std::isfinite(wn.y) && std::isfinite(wn.z) &&
+        std::isfinite(qn.x) && std::isfinite(qn.y) && std::isfinite(qn.z) &&
+        std::isfinite(qn.w))
+    {
+        Eigen::Quaterniond qne(qn.w, qn.x, qn.y, qn.z);
+        if (!ib2_mss::RangeCheckerD::positive(qne.norm(), false, "qn norm"))
+        {
+            RCLCPP_WARN(this->get_logger(), "Invalid Quaternion : %f", qne.norm());
+            return false;
+        }
+        qne.normalize();
+        if (!first)
+        {
+            rclcpp::Time tc(last_nav_stamp_.pose.header.stamp.sec,
+                            last_nav_stamp_.pose.header.stamp.nanosec,
+                            RCL_ROS_TIME);
+            if (tc >= tn)  // CHECK: Too fast?
+            {
+                RCLCPP_DEBUG(this->get_logger(), "Invalid Navigation Stamp : current %lld.%09lld, last %lld.%09lld",
+                        RCL_NS_TO_S(tn.nanoseconds()), tn.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(tn.nanoseconds())),
+                        RCL_NS_TO_S(tc.nanoseconds()), tc.nanoseconds() - RCL_S_TO_NS(RCL_NS_TO_S(tc.nanoseconds())));
+                return false;
+            }
+            double dt((tn - tc).seconds());
+            double dr(nav_dr_ * dt);
+            double dv(nav_dv_ * dt);
+            double da(nav_da_ * dt);
+            double dq(nav_dq_ * dt);
+            double dw(nav_dw_ * dt);
+            
+            auto& rc(last_nav_stamp_.pose.pose.position);
+            auto& qc(last_nav_stamp_.pose.pose.orientation);
+            auto& vc(last_nav_stamp_.twist.linear);
+            auto& wc(last_nav_stamp_.twist.angular);
+            auto& ac(last_nav_stamp_.a);
+            Eigen::Quaterniond qce(qc.w, qc.x, qc.y, qc.z);
+            qce.normalize();
+
+            Eigen::Quaterniond dqe(qne.conjugate() * qce);
+            double dthe = std::acos(dqe.w()) * 2.;
+            if(M_PI < dthe)
+                dthe = 2. * M_PI - dthe;
+
+            if (std::abs(rn.x - rc.x) > dr ||
+                std::abs(rn.y - rc.y) > dr ||
+                std::abs(rn.z - rc.z) > dr ||
+                std::abs(vn.x - vc.x) > dv ||
+                std::abs(vn.y - vc.y) > dv ||
+                std::abs(vn.z - vc.z) > dv ||
+                std::abs(an.x - ac.x) > da ||
+                std::abs(an.y - ac.y) > da ||
+                std::abs(an.z - ac.z) > da ||
+                std::abs(wn.x - wc.x) > dw ||
+                std::abs(wn.y - wc.y) > dw ||
+                std::abs(wn.z - wc.z) > dw ||
+                dthe                  > dq)
+            {
+                RCLCPP_INFO(this->get_logger(), "Invalid Navigation(Current - Last)");
+                RCLCPP_INFO(this->get_logger(), "current pos : %f, %f, %f",     rn.x, rn.y, rn.z);
+                RCLCPP_INFO(this->get_logger(), "current vel : %f, %f, %f",     vn.x, vn.y, vn.z);
+                RCLCPP_INFO(this->get_logger(), "current acc : %f, %f, %f",     an.x, an.y, an.z);
+                RCLCPP_INFO(this->get_logger(), "current w   : %f, %f, %f",     wn.x, wn.y, wn.z);
+                RCLCPP_INFO(this->get_logger(), "current qtn : %f, %f, %f, %f", qn.x, qn.y, qn.z, qn.w);
+                RCLCPP_INFO(this->get_logger(), "last    pos : %f, %f, %f",     rc.x, rc.y, rc.z);
+                RCLCPP_INFO(this->get_logger(), "last    vel : %f, %f, %f",     vc.x, vc.y, vc.z);
+                RCLCPP_INFO(this->get_logger(), "last    acc : %f, %f, %f",     ac.x, ac.y, ac.z);
+                RCLCPP_INFO(this->get_logger(), "last    w   : %f, %f, %f",     wc.x, wc.y, wc.z);
+                RCLCPP_INFO(this->get_logger(), "last    qtn : %f, %f, %f, %f", qc.x, qc.y, qc.z, qc.w);
+                RCLCPP_INFO(this->get_logger(), "dthe        : %f",             dthe);
+                return false;
+            }
+        }
+        return true;
+    }
+    RCLCPP_INFO(this->get_logger(), "Invalid Navigation(NaN/infinite)");
+    
+    return false;
+}
+
+//------------------------------------------------------------------------------
+// 制御目標アクション受信時の処理
+void ib2::Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal_handle)
+{
+    RCLCPP_INFO(this->get_logger(), "Executing goal");
+    goal_handle_ = goal_handle;
+    const auto goal = goal_handle_->get_goal();
+    auto feedback = std::make_shared<CtlCommand::Feedback>();
+    auto & time_to_go = feedback->time_to_go;
+    auto & pose_to_go = feedback->pose_to_go;
+    auto result = std::make_shared<CtlCommand::Result>();
+
+    RCLCPP_INFO(this->get_logger(), "Received goal with type: %d", goal->type.type);
+
+    try 
+    {
+        rclcpp::Time tcmd(goal->target.header.stamp.sec,
+                          goal->target.header.stamp.nanosec,
+                          RCL_ROS_TIME);
+        rclcpp::Time tnav(last_nav_stamp_.pose.header.stamp.sec,
+                          last_nav_stamp_.pose.header.stamp.nanosec,
+                          RCL_ROS_TIME);
+        if (!valid_navigation_ || tcmd - tnav > interval_feedback_)
+            throw std::domain_error("no valid navigation message");
+        if (goal->type.type < ib2_interfaces::msg::CtlStatusType::STOP_MOVING)
+        {
+            status_ = (goal->type.type == ib2_interfaces::msg::CtlStatusType::STAND_BY ? 
+                       ib2_interfaces::msg::CtlStatusType::STAND_BY : 
+                       ib2_interfaces::msg::CtlStatusType::KEEP_POSE);
+            setKeepPose();
+            controller_.flash();
+            goalTarget();
+        }
+        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::RELEASE)
+            release();
+        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::DOCK)
+            docking(true);
+        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::DOCK_WITHOUT_CORRECTION)
+            docking(false);
+        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::SCAN)
+            scan();
+        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::STOP_MOVING)
+            target();
+        else if ((goal->type.type == ib2_interfaces::msg::CtlStatusType::MOVE_TO_RELATIVE_TARGET ||
+                  goal->type.type == ib2_interfaces::msg::CtlStatusType::MOVE_TO_ABSOLUTE_TARGET) &&
+                  validCommand(goal))
+            target();
+        else
+            abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+    }
+    catch (const std::exception& e) 
+    {
+        std::string what(ib2_mss::Log::caughtException(e.what()));
+        RCLCPP_ERROR(this->get_logger(), "%s", what.c_str());
+        abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+        status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    }
+    catch (...) 
+    {
+        RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::commandCallback");
+        abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+        status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    }
+}
+
+//------------------------------------------------------------------------------
+// Callback of update parameter service
+bool ib2::Ctl::updateCallback(
+    const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
+    std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res)
+{
+    // ROS_INFO("Update Parameters by /ctl/update_params");
+    RCLCPP_INFO(this->get_logger(), "%s: Updating parameters", UPDATE_SERVICE.c_str());
+
+    res->stamp = this->now();
+    if (setMember())
+    {
+        RCLCPP_INFO(this->get_logger(), "%s: Succeeded", UPDATE_SERVICE.c_str());
+        res->status = ib2_interfaces::srv::UpdateParameter::Response::SUCCESS;
+    }
+    else
+    {
+        RCLCPP_ERROR(this->get_logger(), "%s: Failed", UPDATE_SERVICE.c_str());
+        res->status = ib2_interfaces::srv::UpdateParameter::Response::FAILURE_UPDATE;
+    }
+    return true;
+}
+
+//------------------------------------------------------------------------------
+// Callback of subscribe on the TOPIC_NAV_POSE
+void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
+{
+//    ROS_INFO_STREAM(nav_stamp);
+    static size_t invalid_counter(0);
+    try 
+    {
+        // 誘導制御計算実施
+        static bool reset = true;
+        if (!validNavigation(nav_stamp, reset))
+        {
+            ++invalid_counter;
+            if (invalid_counter < nav_counter_)
+                return;
+            invalid_counter = 0;
+            if (goal_handle_->is_active())
+                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
+            setKeepPose();
+            status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+            valid_navigation_ = false;
+        }
+        else
+        {
+            invalid_counter = 0;
+            last_nav_stamp_ = nav_stamp;
+            valid_navigation_ = true;
+        }
+        if (reset)
+        {
+            setKeepPose();
+            status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+            reset = false;
+            valid_navigation_ = true;
+        }
+        
+        // 検知処理
+        auto dtc_status(dtc_.detection(nav_stamp, status_));
+        if (status_ == ib2_interfaces::msg::CtlStatusType::STAND_BY)
+            dtc_.clearStatus();
+        else if (dtc_status == Dtc::DETECT::DISTURBED && 
+            status_ != ib2_interfaces::msg::CtlStatusType::RELEASE &&
+            status_ != ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP &&
+            status_ != ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY)
+            status_ = ib2_interfaces::msg::CtlStatusType::DISTURBED;
+        else if (dtc_status == Dtc::DETECT::COLLISION)
+        {
+            if (status_ == ib2_interfaces::msg::CtlStatusType::RELEASE)
+                dtc_.clearStatus();
+            else if (!goal_handle_->is_active())
+            {
+                dtc_.clearStatus();
+                setKeepPose();
+                status_ = ib2_interfaces::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
+            }
+        }
+        else if (dtc_status == Dtc::DETECT::CREW_CAPTURE)
+        {
+            if (goal_handle_->is_active())
+                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
+            status_ = ib2_interfaces::msg::CtlStatusType::CAPTURED;
+        }
+        else if (dtc_status == Dtc::DETECT::CREW_RELEASE)
+        {
+            dtc_.clearStatus();
+            setKeepPose();
+            status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+        }
+        RCLCPP_DEBUG(this->get_logger(), "Ctl status: %d", status_);
+
+        // 制御停止判定
+        static bool publishWrench = true;
+        if (status_ < ib2_interfaces::msg::CtlStatusType::KEEP_POSE ||
+            status_ == ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY)
+        {
+            if (publishWrench)
+            {
+                auto tn = rclcpp::Time(nav_stamp.pose.header.stamp.sec,
+                                      nav_stamp.pose.header.stamp.nanosec,
+                                      RCL_ROS_TIME);
+                auto wrench = controller_.wrenchCommandStop(tn);
+                //fsm_->subscribeCommand(wrench);    /// Modification for platform packages
+                wrench_pub_->publish(wrench);
+                publishWrench = false;
+                RCLCPP_INFO(this->get_logger(), "Published zero Wrench");
+            }
+        }
+        else
+        {
+            publishWrench = true;
+            
+            // 位置姿勢誘導プロファイル
+            auto p = profiler_.posAttProfile(rclcpp::Time(nav_stamp.pose.header.stamp.sec,
+                                                        nav_stamp.pose.header.stamp.nanosec,
+                                                        RCL_ROS_TIME));
+            
+            // 力トルク
+            geometry_msgs::msg::WrenchStamped wrench
+            (controller_.wrenchCommand(nav_stamp, p, body_));
+            if (status_ == ib2_interfaces::msg::CtlStatusType::SCAN)
+            {
+                wrench.wrench.force.x = 0.;
+                wrench.wrench.force.y = 0.;
+                wrench.wrench.force.z = 0.;
+            }
+            
+            // publish
+            //fsm_->subscribeCommand(wrench);    // Modification for platform packages
+            wrench_pub_->publish(wrench);
+            RCLCPP_DEBUG(this->get_logger(), "Publishing Wrench");
+        }
+    }
+    catch (const std::exception& e) 
+    {
+        std::string what(ib2_mss::Log::caughtException(e.what()));
+        RCLCPP_ERROR(this->get_logger(), "%s", what.c_str());
+    }
+    catch (...) 
+    {
+        RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::navinfoCallback");
+    }
+}
+
+//------------------------------------------------------------------------------
+// Callback of publish on the TOPIC_NAV_POSE
+void ib2::Ctl::timerCallback()
+{
+    try
+    {
+        auto p = profiler_.posAttProfile(rclcpp::Time(this->now(), RCL_ROS_TIME));
+        auto msg(p.status(status_));
+        // msg.pose.header.seq = ++seq_status_;
+        status_pub_->publish(msg);
+    }
+    catch (const std::exception& e) 
+    {
+        std::string what(ib2_mss::Log::caughtException(e.what()));
+        RCLCPP_ERROR(this->get_logger(), "%s", what.c_str());
+    }
+    catch (...) 
+    {
+        RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::timerCallback");
+    }
+}

@@ -1,3 +1,0 @@
-# platform_docker
-
-技術実証プラットフォーム向けDocker関連ファイル

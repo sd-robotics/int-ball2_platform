@@ -1,0 +1,442 @@
+
+#include "ib2_ctl/dtc.h"
+#include "ib2_ctl_common/RangeChecker.h"
+
+#include <cassert>
+//------------------------------------------------------------------------------
+// ファイルスコープ
+namespace
+{
+    bool move_unbiased = false;
+}
+
+//------------------------------------------------------------------------------
+// デフォルトコンストラクタ
+ib2::Dtc::Dtc(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
+    rclcpp::Node("dtc", options),
+    status_(DETECT::NONE),dtc_sigmaup_started_(false),
+    sigma_start_counter_(0),sigma_end_counter_(0),from_sigup_counter_(0),
+    keep_state_counter_(0)
+{
+    using namespace ib2_mss;
+
+    /** 航法キューサイズ */
+    static const std::string ROSPARAM_QUE_SIZE("nav_que.size");
+    int que_size       (0);
+    this->declare_parameter(ROSPARAM_QUE_SIZE, 10);
+    que_size = this->get_parameter(ROSPARAM_QUE_SIZE).as_int();
+    static const RangeCheckerUI32 QUE_SIZE_RANGE
+    (RangeCheckerUI32::TYPE::GE, 2, true);
+    QUE_SIZE_RANGE.valid(que_size, ROSPARAM_QUE_SIZE);
+    que_size_  = que_size;
+    RCLCPP_INFO(this->get_logger(),"nav_que.size : %d", que_size_);
+
+    /** メンバ設定 */
+
+    this->declare_parameter("docking_chk.tolerance_pos", tolerance_pos_);
+    this->declare_parameter("docking_chk.tolerance_att", tolerance_att_);
+    this->declare_parameter("docking_chk.docking_pos.x", docking_pos_.x());
+    this->declare_parameter("docking_chk.docking_pos.y", docking_pos_.y());
+    this->declare_parameter("docking_chk.docking_pos.z", docking_pos_.z());
+    this->declare_parameter("docking_chk.keep_state_num", keep_state_num_);
+    this->declare_parameter("docking_chk.sigma_start_jud_num", dc_sigma_start_jud_num_);
+    this->declare_parameter("docking_chk.sigma_start_dacc", dc_sigma_start_dacc_);
+    this->declare_parameter("docking_chk.sigma_start_drate", dc_sigma_start_drate_);
+    this->declare_parameter("att_profile.rda.x", docking_q_.x());
+    this->declare_parameter("att_profile.rda.y", docking_q_.y());
+    this->declare_parameter("att_profile.rda.z", docking_q_.z());
+    this->declare_parameter("att_profile.rda.w", docking_q_.w());
+
+    this->declare_parameter("colcaprel_chk.colcap_id_jud_num", colcap_id_jud_num_);
+    this->declare_parameter("colcaprel_chk.sigma_start_jud_num", sigma_start_jud_num_);
+    this->declare_parameter("colcaprel_chk.sigma_end_jud_num", sigma_end_jud_num_);
+    this->declare_parameter("colcaprel_chk.sigma_start_dacc", sigma_start_dacc_);
+    this->declare_parameter("colcaprel_chk.sigma_end_dacc", sigma_end_dacc_);
+    this->declare_parameter("colcaprel_chk.sigma_start_drate", sigma_start_drate_);
+    this->declare_parameter("colcaprel_chk.sigma_end_drate", sigma_end_drate_);
+
+    setMember();
+
+    /** 標準偏差計算初期化 */
+    moave_daccx_.reset(new ib2_mss::MovingAverage(que_size_));
+    moave_daccy_.reset(new ib2_mss::MovingAverage(que_size_));
+    moave_daccz_.reset(new ib2_mss::MovingAverage(que_size_));
+    moave_dwx_.reset(new ib2_mss::MovingAverage(que_size_));    
+    moave_dwy_.reset(new ib2_mss::MovingAverage(que_size_));    
+    moave_dwz_.reset(new ib2_mss::MovingAverage(que_size_));    
+}
+
+//------------------------------------------------------------------------------
+// デストラクタ
+ib2::Dtc::~Dtc() = default;
+
+//------------------------------------------------------------------------------
+// メンバ設定
+bool ib2::Dtc::setMember()
+{
+    using namespace ib2_mss;
+
+    bool ret = true;
+
+    // ドッキング検知パラメータ
+    tolerance_pos_ = this->get_parameter("docking_chk.tolerance_pos").as_double();
+    tolerance_att_ = this->get_parameter("docking_chk.tolerance_att").as_double();
+    docking_pos_.x() = this->get_parameter("docking_chk.docking_pos.x").as_double();
+    docking_pos_.y() = this->get_parameter("docking_chk.docking_pos.y").as_double();
+    docking_pos_.z() = this->get_parameter("docking_chk.docking_pos.z").as_double();
+    keep_state_num_ = this->get_parameter("docking_chk.keep_state_num").as_int();
+    dc_sigma_start_jud_num_ = this->get_parameter("docking_chk.sigma_start_jud_num").as_int();
+    dc_sigma_start_dacc_ = this->get_parameter("docking_chk.sigma_start_dacc").as_double();
+    dc_sigma_start_drate_ = this->get_parameter("docking_chk.sigma_start_drate").as_double();
+    docking_q_.x() = this->get_parameter("att_profile.rda.x").as_double();
+    docking_q_.y() = this->get_parameter("att_profile.rda.y").as_double();
+    docking_q_.z() = this->get_parameter("att_profile.rda.z").as_double();
+    docking_q_.w() = this->get_parameter("att_profile.rda.w").as_double();
+
+    // TODO: ここでのチェックは、パラメータサーバーからの値が正しいかどうかを確認するためのものです。
+    ret = ret && tolerance_pos_;
+    ret = ret && tolerance_att_;
+    // ret = ret && docking_pos_.x(); //  DEBUG: when pos is 0, return false
+    // ret = ret && docking_pos_.y();
+    // ret = ret && docking_pos_.z();
+    ret = ret && keep_state_num_;
+    ret = ret && dc_sigma_start_jud_num_;
+    ret = ret && dc_sigma_start_dacc_;
+    ret = ret && dc_sigma_start_drate_;
+    // ret = ret && docking_q_.x(); //  DEBUG: when pos is 0, return false
+    // ret = ret && docking_q_.y();
+    // ret = ret && docking_q_.z();
+    // ret = ret && docking_q_.w();
+    
+    ret = ret && RangeCheckerD::positive(tolerance_pos_    , true, "docking_chk.tolerance_pos");
+    ret = ret && RangeCheckerD::positive(tolerance_att_    , true, "docking_chk.tolerance_att");
+    ret = ret && RangeCheckerD::positive(docking_q_.norm() , true, "docking attitude quaternion magnitude");
+
+    static const RangeCheckerUI32 JUD_NUM_RANGE
+    (RangeCheckerUI32::TYPE::GE, 1, true);
+
+    ret = ret && JUD_NUM_RANGE.valid(keep_state_num_,                  "docking_chk.keep_state_num_");
+    ret = ret && JUD_NUM_RANGE.valid(dc_sigma_start_jud_num_ ,         "docking_chk.sigma_start_jud_num");
+    ret = ret && RangeCheckerD::positive(dc_sigma_start_dacc_ , true,  "docking_chk.sigma_start_dacc");
+    ret = ret && RangeCheckerD::positive(dc_sigma_start_drate_, true,  "docking_chk.sigma_start_drate");
+
+    RCLCPP_INFO(this->get_logger(), "******** Set Parameters in dtc.cpp");
+    RCLCPP_INFO(this->get_logger(), "docking_chk.tolerance_pos         : %f", tolerance_pos_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.tolerance_att         : %f", tolerance_att_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.docking_pos.x         : %f", docking_pos_.x());
+    RCLCPP_INFO(this->get_logger(), "docking_chk.docking_pos.y         : %f", docking_pos_.y());
+    RCLCPP_INFO(this->get_logger(), "docking_chk.docking_pos.z         : %f", docking_pos_.z());
+    RCLCPP_INFO(this->get_logger(), "docking_chk.keep_state_num        : %d", keep_state_num_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.sigma_start_jud_num   : %d", dc_sigma_start_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.sigma_start_dacc      : %f", dc_sigma_start_dacc_);
+    RCLCPP_INFO(this->get_logger(), "docking_chk.sigma_start_drate     : %f", dc_sigma_start_drate_);
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.x                 : %f", docking_q_.x());
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.y                 : %f", docking_q_.y());
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.z                 : %f", docking_q_.z());
+    RCLCPP_INFO(this->get_logger(), "att_profile.rda.w                 : %f", docking_q_.w());
+
+    // 衝突・クルーキャプチャリリースパラメータ
+    colcap_id_jud_num_   = this->get_parameter("colcaprel_chk.colcap_id_jud_num").as_int();
+    sigma_start_jud_num_ = this->get_parameter("colcaprel_chk.sigma_start_jud_num").as_int();
+    sigma_end_jud_num_   = this->get_parameter("colcaprel_chk.sigma_end_jud_num").as_int();
+    sigma_start_dacc_    = this->get_parameter("colcaprel_chk.sigma_start_dacc").as_double();
+    sigma_end_dacc_      = this->get_parameter("colcaprel_chk.sigma_end_dacc").as_double();
+    sigma_start_drate_   = this->get_parameter("colcaprel_chk.sigma_start_drate").as_double();
+    sigma_end_drate_     = this->get_parameter("colcaprel_chk.sigma_end_drate").as_double();
+
+    // TODO: ここでのチェックは、パラメータサーバーからの値が正しいかどうかを確認するためのものです。
+    ret = ret && colcap_id_jud_num_;
+    ret = ret && sigma_start_jud_num_;
+    ret = ret && sigma_end_jud_num_;
+    ret = ret && sigma_start_dacc_;
+    ret = ret && sigma_end_dacc_;
+    ret = ret && sigma_start_drate_;
+    ret = ret && sigma_end_drate_;
+
+    ret = ret && JUD_NUM_RANGE.valid(colcap_id_jud_num_   , "colcaprel_chk.colcap_id_jud_num");
+    ret = ret && JUD_NUM_RANGE.valid(sigma_start_jud_num_ , "colcaprel_chk.sigma_start_jud_num");
+    ret = ret && JUD_NUM_RANGE.valid(sigma_end_jud_num_   , "colcaprel_chk.sigma_end_jud_num");
+
+    ret = ret && RangeCheckerD::positive(sigma_start_dacc_    , true, "colcaprel_chk.sigma_start_dacc");
+    ret = ret && RangeCheckerD::positive(sigma_end_dacc_      , true, "colcaprel_chk.sigma_end_dacc");
+    ret = ret && RangeCheckerD::positive(sigma_start_drate_   , true, "colcaprel_chk.sigma_start_drate");
+    ret = ret && RangeCheckerD::positive(sigma_end_drate_     , true, "colcaprel_chk.sigma_end_drate");
+
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.colcap_id_jud_num   : %d", colcap_id_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_start_jud_num : %d", sigma_start_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_end_jud_num   : %d", sigma_end_jud_num_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_start_dacc    : %f", sigma_start_dacc_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_end_dacc      : %f", sigma_end_dacc_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_start_drate   : %f", sigma_start_drate_);
+    RCLCPP_INFO(this->get_logger(), "colcaprel_chk.sigma_end_drate     : %f", sigma_end_drate_);
+
+    if(!ret)
+        RCLCPP_ERROR(this->get_logger(), "Parameter Setting Error in dtc.cpp");
+
+    return ret;
+}
+
+//------------------------------------------------------------------------------
+// 検知処理
+ib2::Dtc::DETECT ib2::Dtc::detection(const ib2_interfaces::msg::Navigation nav_stamp,
+ const int32_t ctl_status) 
+{
+    // 航法値をキューに格納
+    history(nav_stamp);
+
+    // 判定 
+    check(ctl_status);
+
+    return status_;
+}
+
+//------------------------------------------------------------------------------
+// ドッキング目標値の取得
+ib2_interfaces::msg::Navigation ib2::Dtc::dockingTarget(const rclcpp::Time& t) const
+{
+    ib2_interfaces::msg::Navigation o;
+    o.pose.header.stamp = t;
+    o.pose.pose.position.x = docking_pos_.x();
+    o.pose.pose.position.y = docking_pos_.y();
+    o.pose.pose.position.z = docking_pos_.z();
+    o.pose.pose.orientation.x = docking_q_.x();
+    o.pose.pose.orientation.y = docking_q_.y();
+    o.pose.pose.orientation.z = docking_q_.z();
+    o.pose.pose.orientation.w = docking_q_.w();
+    return o;
+}
+
+//------------------------------------------------------------------------------
+// 検知ステータスのクリア
+void ib2::Dtc::clearStatus() 
+{
+    // ステータスクリア
+    status_= DETECT::NONE; 
+    
+    // 判定処理の初期化
+    dtc_sigmaup_started_  = false;
+    sigma_start_counter_  = 0;
+    sigma_end_counter_    = 0;
+    from_sigup_counter_   = 0;
+    keep_state_counter_   = 0;
+
+}
+
+//------------------------------------------------------------------------------
+// 判定
+void ib2::Dtc::check(const int32_t ctl_status)
+{
+    auto std_ax(moave_daccx_->s(move_unbiased));
+    auto std_ay(moave_daccy_->s(move_unbiased));
+    auto std_az(moave_daccz_->s(move_unbiased));
+    auto std_av = Eigen::Vector3d (std_ax, std_ay, std_az);
+
+    auto std_wx(moave_dwx_->s(move_unbiased));
+    auto std_wy(moave_dwy_->s(move_unbiased));
+    auto std_wz(moave_dwz_->s(move_unbiased));
+    auto std_wv = Eigen::Vector3d (std_wx, std_wy, std_wz);
+    
+    std_a_ = std_av.norm();
+    std_w_ = std_wv.norm();
+
+    if(ctl_status==ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ||
+       ctl_status==ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY)
+    {
+        // ドッキングステーションとの接触判定
+        if(!dtc_sigmaup_started_)
+        {
+            dtc_sigmaup_started_ = sigmaAscent(dc_sigma_start_jud_num_,
+                                               dc_sigma_start_drate_, 
+                                               dc_sigma_start_jud_num_);
+        }
+        else
+        {
+            // ドッキング判定 (RDA/AIP後から実施)
+            dockingCheck();
+        }
+    }
+    else
+    {
+        // 衝突/クルーのキャプチャ判定
+        if(!dtc_sigmaup_started_)
+        {
+            dtc_sigmaup_started_ = sigmaAscent(sigma_start_dacc_,
+                                               sigma_start_drate_,
+                                               sigma_start_jud_num_);
+        }
+        else
+        {
+            // クルーキャプチャ判定
+            if(status_ == DETECT::DISTURBED)
+            {
+                if(crewCapCheck()) return;
+            }
+            
+            // 衝突・クルーリリース判定
+            colrelCheck();
+        }
+
+    }
+}
+
+//------------------------------------------------------------------------------
+// 航法暦
+void ib2::Dtc::history(const ib2_interfaces::msg::Navigation nav_stamp)
+{
+    static bool init = true;
+
+    // 航法前回値
+    if(init) 
+    {
+        last_nav_stamp_ = nav_stamp;
+        init = false;
+    }
+    auto pre_nav (last_nav_stamp_);
+ 
+    // 加速度差分
+    auto ac = Eigen::Vector3d (nav_stamp.a.x, nav_stamp.a.y, nav_stamp.a.z);
+    auto ap = Eigen::Vector3d (pre_nav.a.x, pre_nav.a.y, pre_nav.a.z);
+    auto dacc (ac-ap);
+    moave_daccx_->push_back(dacc.x());
+    moave_daccy_->push_back(dacc.y());
+    moave_daccz_->push_back(dacc.z());
+
+    // 角速度差分
+    auto wc = Eigen::Vector3d (nav_stamp.twist.angular.x,
+             nav_stamp.twist.angular.y, nav_stamp.twist.angular.z);
+    auto wp = Eigen::Vector3d (pre_nav.twist.angular.x,
+             pre_nav.twist.angular.y, pre_nav.twist.angular.z);
+    auto dw = wc-wp;
+    moave_dwx_->push_back(dw.x());
+    moave_dwy_->push_back(dw.y());
+    moave_dwz_->push_back(dw.z());
+
+    // 最新の位置
+    auto rc(nav_stamp.pose.pose.position);
+    rc_ =  Eigen::Vector3d (rc.x, rc.y, rc.z);
+
+    // 最新の姿勢
+    auto qc(nav_stamp.pose.pose.orientation);
+    qc_=  Eigen::Quaterniond (qc.w, qc.x, qc.y, qc.z); 
+
+    // 航法値を保存
+    last_nav_stamp_ = nav_stamp;
+}
+
+//------------------------------------------------------------------------------
+// 標準偏差の立ち上がり判定
+bool ib2::Dtc::sigmaAscent(const double sigma_dacc,const double sigma_drate,
+  const int sigma_jud_num)
+{
+    // 標準偏差 > 閾値　判定
+    if(std_a_ > sigma_dacc || std_w_ > sigma_drate) 
+    {
+        sigma_start_counter_++;
+    }
+    else
+    {
+        sigma_start_counter_ = 0;
+    }
+
+    // 閾値を超えた回数の判定
+    if(sigma_start_counter_ >= sigma_jud_num)
+    {
+        sigma_start_counter_ = 0;
+        status_  = DETECT::DISTURBED;
+        RCLCPP_INFO(this->get_logger(), "DISTURBED");
+        return true;
+    }
+    return false;
+}
+
+//------------------------------------------------------------------------------
+// 衝突・クルーリリース判定
+void ib2::Dtc::colrelCheck()
+{
+    // 標準偏差の下降チェック
+    if(std_a_ < sigma_end_dacc_ && std_w_ < sigma_end_drate_) 
+    {
+        sigma_end_counter_++;
+    }
+    else
+    {
+        sigma_end_counter_ = 0;
+    }
+ 
+    // 衝突・クルーリリース判定
+    if(sigma_end_counter_ >= sigma_end_jud_num_)
+    {
+        if(status_ == DETECT::CREW_CAPTURE)
+        {
+            // クルーリリース判定
+            status_  = DETECT::CREW_RELEASE;
+            RCLCPP_INFO(this->get_logger(), "RELEASED");
+            sigma_end_counter_ = 0;
+        }
+        if(status_ == DETECT::DISTURBED)
+        {
+            // 衝突判定
+            status_  = DETECT::COLLISION;
+            RCLCPP_INFO(this->get_logger(), "COLLISION");
+            sigma_end_counter_ = 0;
+        }
+    } 
+}
+
+//------------------------------------------------------------------------------
+// クルーのキャプチャ判定
+bool ib2::Dtc::crewCapCheck()
+{
+    from_sigup_counter_++;
+    if(from_sigup_counter_ + sigma_start_jud_num_ >= colcap_id_jud_num_)
+    {
+        status_  = DETECT::CREW_CAPTURE;
+        RCLCPP_INFO(this->get_logger(), "CAPTURED");
+        from_sigup_counter_ = 0;
+        return true;
+    }
+    return false;
+}
+
+//------------------------------------------------------------------------------
+// ドッキング判定
+void ib2::Dtc::dockingCheck()
+{
+    // 位置誤差
+    auto dr(rc_ - docking_pos_);
+    // 姿勢誤差
+    Eigen::Quaterniond qe = docking_q_.conjugate()*qc_;
+    double dq(2. * acos(qe.w())); //rad
+
+    // ドッキング位置保持判定
+    if(keep_state_counter_ < keep_state_num_) 
+    {
+        // 位置・姿勢による判定
+        if(dr.norm() > tolerance_pos_ || fabs(dq) > tolerance_att_ )
+        {
+            RCLCPP_INFO(this->get_logger(), "DOCKING NG: dr:%f,  dq:%f, counter:%d",dr.norm(),dq,keep_state_counter_);
+            keep_state_counter_ = 0;
+            // 検知リセット
+            dtc_sigmaup_started_ = false;
+        }
+        else
+        {
+            keep_state_counter_++;
+        }
+    }
+    else
+    {
+        keep_state_counter_ = 0;
+        status_ = DETECT::DOCKING;
+        RCLCPP_INFO(this->get_logger(), "DOCKING OK");
+    }
+}
+
+//------------------------------------------------------------------------------
+// ステータスの取得
+ib2::Dtc::DETECT ib2::Dtc::status() const
+{
+    return status_;
+}
+
+// End Of File -----------------------------------------------------------------

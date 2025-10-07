@@ -1,0 +1,1 @@
+ib2_platform_interfaces/PowerStatus streaming_status
