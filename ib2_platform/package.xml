@@ -11,10 +11,10 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <exec_depend>guidance_control</exec_depend>
-  <exec_depend>platform_manager</exec_depend>
-  <exec_depend>platform_monitor</exec_depend>
-  <exec_depend>platform_msgs</exec_depend>
+  <exec_depend>ib2_guide_control</exec_depend>
+  <!-- <exec_depend>ib2_platform_manager</exec_depend> -->
+  <!-- <exec_depend>ib2_platform_monitor</exec_depend> -->
+  <exec_depend>ib2_platform_interfaces</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
