@@ -178,7 +178,7 @@ bool ib2::Dtc::setMember()
 
 //------------------------------------------------------------------------------
 // 検知処理
-ib2::Dtc::DETECT ib2::Dtc::detection(const ib2_interfaces::msg::Navigation nav_stamp,
+ib2::Dtc::DETECT ib2::Dtc::detection(const ib2_msgs::msg::Navigation nav_stamp,
  const int32_t ctl_status) 
 {
     // 航法値をキューに格納
@@ -192,9 +192,9 @@ ib2::Dtc::DETECT ib2::Dtc::detection(const ib2_interfaces::msg::Navigation nav_s
 
 //------------------------------------------------------------------------------
 // ドッキング目標値の取得
-ib2_interfaces::msg::Navigation ib2::Dtc::dockingTarget(const rclcpp::Time& t) const
+ib2_msgs::msg::Navigation ib2::Dtc::dockingTarget(const rclcpp::Time& t) const
 {
-    ib2_interfaces::msg::Navigation o;
+    ib2_msgs::msg::Navigation o;
     o.pose.header.stamp = t;
     o.pose.pose.position.x = docking_pos_.x();
     o.pose.pose.position.y = docking_pos_.y();
@@ -239,8 +239,8 @@ void ib2::Dtc::check(const int32_t ctl_status)
     std_a_ = std_av.norm();
     std_w_ = std_wv.norm();
 
-    if(ctl_status==ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ||
-       ctl_status==ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY)
+    if(ctl_status==ib2_msgs::msg::CtlStatusType::MOVING_TO_RDP ||
+       ctl_status==ib2_msgs::msg::CtlStatusType::DOCKING_STAND_BY)
     {
         // ドッキングステーションとの接触判定
         if(!dtc_sigmaup_started_)
@@ -281,7 +281,7 @@ void ib2::Dtc::check(const int32_t ctl_status)
 
 //------------------------------------------------------------------------------
 // 航法暦
-void ib2::Dtc::history(const ib2_interfaces::msg::Navigation nav_stamp)
+void ib2::Dtc::history(const ib2_msgs::msg::Navigation nav_stamp)
 {
     static bool init = true;
 

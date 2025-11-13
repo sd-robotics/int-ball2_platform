@@ -7,8 +7,8 @@
 #include <Eigen/Dense>
 
 // Standard messages
-#include "ib2_interfaces/msg/navigation.hpp"
-#include "ib2_interfaces/msg/ctl_status.hpp"
+#include "ib2_msgs/msg/navigation.hpp"
+#include "ib2_msgs/msg/ctl_status.hpp"
 
 #include "ib2_ctl_common/MovingAverage.h"
 
@@ -83,7 +83,7 @@ public:
      * @param [in] t 目標設定時刻
      * @return ドッキング目標値航法メッセージ
      */
-    ib2_interfaces::msg::Navigation dockingTarget(const rclcpp::Time& t) const;
+    ib2_msgs::msg::Navigation dockingTarget(const rclcpp::Time& t) const;
 
     //----------------------------------------------------------------------
     // 実装
@@ -93,7 +93,7 @@ public:
      * @param [in] ctl_status 誘導ステータス
      * @return ステータス
      */
-    Dtc::DETECT detection(const ib2_interfaces::msg::Navigation nav_stamp, const int32_t ctl_status);
+    Dtc::DETECT detection(const ib2_msgs::msg::Navigation nav_stamp, const int32_t ctl_status);
 
     /** 検知ステータスのクリア
      */
@@ -107,7 +107,7 @@ private:
 
     /** 航法暦
      */
-     void history(const ib2_interfaces::msg::Navigation nav_stamp);
+     void history(const ib2_msgs::msg::Navigation nav_stamp);
 
     /** 衝突・クルーリリース判定
      */
@@ -137,7 +137,7 @@ private:
     // メンバ変数
 private:
     /** 前回の航法値*/
-    ib2_interfaces::msg::Navigation last_nav_stamp_;
+    ib2_msgs::msg::Navigation last_nav_stamp_;
 
     /** 最新の位置*/
     Eigen::Vector3d rc_;

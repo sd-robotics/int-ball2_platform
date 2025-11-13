@@ -1,6 +1,6 @@
 
 #include "ib2_ctl/ctl_elements.h"
-// #include "ib2_interfaces/msg/navigation.hpp"
+// #include "ib2_msgs/msg/navigation.hpp"
 
 
 namespace
@@ -92,9 +92,9 @@ const Eigen::Vector3d& CtlElements::w() const
 
 //------------------------------------------------------------------------------
 // 航法メッセージ形式での取得
-ib2_interfaces::msg::CtlStatus CtlElements::status(int32_t s) const
+ib2_msgs::msg::CtlStatus CtlElements::status(int32_t s) const
 {
-    ib2_interfaces::msg::CtlStatus o;
+    ib2_msgs::msg::CtlStatus o;
 
     o.pose.header.stamp.sec = t_.seconds();
     o.pose.header.stamp.nanosec = t_.nanoseconds();

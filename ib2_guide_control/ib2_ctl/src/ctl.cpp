@@ -7,7 +7,7 @@
 #include "ib2_ctl/pos_profiler.h"
 #include "ib2_ctl/att_profiler.h"
 // #include "ib2_ctl/pos_att_profiler.h"
-#include "ib2_interfaces/srv/marker_correction.hpp"
+#include "ib2_msgs/srv/marker_correction.hpp"
 
 #include "ib2_ctl_common/Log.h"
 #include "ib2_ctl_common/Constants.h"
@@ -50,11 +50,11 @@ ib2::Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
 {
     RCLCPP_INFO(this->get_logger(), "******** Starting Ctl Node");
     
-    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
     setMember();
 
     // Action server
-    command_as_ = rclcpp_action::create_server<ib2_interfaces::action::CtlCommand>(
+    command_as_ = rclcpp_action::create_server<ib2_msgs::action::CtlCommand>(
         this,
         COMMAND_ACTION,
         std::bind(&ib2::Ctl::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
@@ -63,17 +63,17 @@ ib2::Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
     // command_as_.start();
     
     // Service server
-    update_ss_ = this->create_service<ib2_interfaces::srv::UpdateParameter>(
+    update_ss_ = this->create_service<ib2_msgs::srv::UpdateParameter>(
         UPDATE_SERVICE, std::bind(&ib2::Ctl::updateCallback, this, std::placeholders::_1, std::placeholders::_2));
     
     // Service client
-    marker_sc_ = this->create_client<ib2_interfaces::srv::MarkerCorrection>(
+    marker_sc_ = this->create_client<ib2_msgs::srv::MarkerCorrection>(
         "/sensor_fusion/marker_correction");
     
     // TODO: configure QoS
 
     // Subscribers
-    navinfo_sub_ = this->create_subscription<ib2_interfaces::msg::Navigation>(
+    navinfo_sub_ = this->create_subscription<ib2_msgs::msg::Navigation>(
         TOPIC_NAV_POSE, 5, std::bind(&ib2::Ctl::navinfoCallback, this, std::placeholders::_1));
 
     // Advertised messages
@@ -81,9 +81,9 @@ ib2::Ctl::Ctl(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) :
         TOPIC_CTL_WRENCH, 5);
 
     // Advertised messages
-    profile_pub_ = this->create_publisher<ib2_interfaces::msg::CtlProfile>(
+    profile_pub_ = this->create_publisher<ib2_msgs::msg::CtlProfile>(
         TOPIC_CTL_PROFILE, 5);
-    status_pub_  = this->create_publisher<ib2_interfaces::msg::CtlStatus>(
+    status_pub_  = this->create_publisher<ib2_msgs::msg::CtlStatus>(
         TOPIC_CTL_STATUS, 5);
 
     timer_ = this->create_wall_timer(
@@ -327,28 +327,28 @@ bool ib2::Ctl::guidance(
             goal_handle_->publish_feedback(std::make_shared<CtlCommand::Feedback>(fb));
             tfb = this->now();
         }
-        if (goal_type == ib2_interfaces::msg::CtlStatusType::SCAN ? 
+        if (goal_type == ib2_msgs::msg::CtlStatusType::SCAN ? 
             reachGoalScan(stayGoal, tbGoal, tnav, fb, tola):
             reachGoal(stayGoal, tbGoal, tnav, fb, tolp, tola))
             return true;
         if (dtc_.status() == Dtc::DETECT::COLLISION)
         {
-            cancelTarget(status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ||
-                         status_ == ib2_interfaces::msg::CtlStatusType::RELEASE);
-            abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
+            cancelTarget(status_ == ib2_msgs::msg::CtlStatusType::MOVING_TO_RDP ||
+                         status_ == ib2_msgs::msg::CtlStatusType::RELEASE);
+            abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_ABORTED);
             break;
         }
         if (goal_handle_->is_canceling() || !rclcpp::ok())
         {
-            abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
+            abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_ABORTED);
             if (goal_handle_->is_active())
-                status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
-            else if (goal_type == ib2_interfaces::msg::CtlStatusType::STOP_MOVING)
+                status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
+            else if (goal_type == ib2_msgs::msg::CtlStatusType::STOP_MOVING)
                 setKeepPose();
             else 
             {
-                cancelTarget(status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ||
-                             status_ == ib2_interfaces::msg::CtlStatusType::RELEASE);
+                cancelTarget(status_ == ib2_msgs::msg::CtlStatusType::MOVING_TO_RDP ||
+                             status_ == ib2_msgs::msg::CtlStatusType::RELEASE);
             }
             break;
         }
@@ -372,10 +372,10 @@ void ib2::Ctl::target()
     if (dtc_.status() == Dtc::DETECT::COLLISION)
     {
         dtc_.clearStatus();
-        status_ = ib2_interfaces::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
+        status_ = ib2_msgs::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
     }
-    else if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
-        status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+    else if (status_ != ib2_msgs::msg::CtlStatusType::STAND_BY)
+        status_ = ib2_msgs::msg::CtlStatusType::KEEP_POSE;
 
     RCLCPP_INFO(this->get_logger(), "status: %d", status_);
 }
@@ -384,8 +384,8 @@ void ib2::Ctl::target()
 // リリースモードの処理
 void ib2::Ctl::release()
 {
-    if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
-        abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+    if (status_ != ib2_msgs::msg::CtlStatusType::STAND_BY)
+        abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
     else
     {       
         setKeepPose();
@@ -408,22 +408,22 @@ void ib2::Ctl::release()
             }
             if (goal_handle_->is_canceling() || !rclcpp::ok())
             {
-                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
-                status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+                abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_ABORTED);
+                status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
                 return;
             }
         }
 
-        status_ = ib2_interfaces::msg::CtlStatusType::RELEASE;
+        status_ = ib2_msgs::msg::CtlStatusType::RELEASE;
         auto ipos(ib2::PosAttProfiler::DOCKING_POS::AIP);
         auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
         auto profmsg(profiler_.dockingProfile(last_nav_stamp_, ipos, iatt, body_));
         profile_pub_->publish(profmsg);
         controller_.flash();
-        if (guidance(ib2_interfaces::msg::CtlStatusType::RELEASE, tolerance_pos_, tolerance_att_))
+        if (guidance(ib2_msgs::msg::CtlStatusType::RELEASE, tolerance_pos_, tolerance_att_))
             goalTarget();
-        if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
-            status_  = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+        if (status_ != ib2_msgs::msg::CtlStatusType::STAND_BY)
+            status_  = ib2_msgs::msg::CtlStatusType::KEEP_POSE;
     }
 }
 
@@ -432,27 +432,27 @@ void ib2::Ctl::release()
 void ib2::Ctl::docking(bool correction)
 {
     bool goaled(false);
-    int32_t start_status_ = (correction ? ib2_interfaces::msg::CtlStatusType::MOVING_TO_AIA_AIP : 
-                                          ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP);
+    int32_t start_status_ = (correction ? ib2_msgs::msg::CtlStatusType::MOVING_TO_AIA_AIP : 
+                                          ib2_msgs::msg::CtlStatusType::MOVING_TO_RDA_AIP);
     for (status_  = start_status_; 
-         status_ <= ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP; ++status_)
+         status_ <= ib2_msgs::msg::CtlStatusType::MOVING_TO_RDP; ++status_)
     {
-        auto ipos(status_ < ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP ?
+        auto ipos(status_ < ib2_msgs::msg::CtlStatusType::MOVING_TO_RDP ?
                   ib2::PosAttProfiler::DOCKING_POS::AIP : 
                   ib2::PosAttProfiler::DOCKING_POS::RDP);
-        auto iatt(status_ < ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP ? 
+        auto iatt(status_ < ib2_msgs::msg::CtlStatusType::MOVING_TO_RDA_AIP ? 
                   ib2::PosAttProfiler::DOCKING_ATT::AIA : 
                   ib2::PosAttProfiler::DOCKING_ATT::RDA);
         auto profmsg(profiler_.dockingProfile(last_nav_stamp_, ipos, iatt, body_));
         profile_pub_->publish(profmsg);
         controller_.flash();
         
-        if (!guidance(ib2_interfaces::msg::CtlStatusType::DOCK, 
+        if (!guidance(ib2_msgs::msg::CtlStatusType::DOCK, 
                       tolerance_pos_stop_, tolerance_att_stop_))
             break;
-        else if (status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_AIA_AIP)
+        else if (status_ == ib2_msgs::msg::CtlStatusType::MOVING_TO_AIA_AIP)
         {
-            auto request = std::make_shared<ib2_interfaces::srv::MarkerCorrection::Request>();
+            auto request = std::make_shared<ib2_msgs::srv::MarkerCorrection::Request>();
             // TODO: wait for service to be available
             auto result = marker_sc_->async_send_request(request);
 
@@ -461,18 +461,18 @@ void ib2::Ctl::docking(bool correction)
                 rclcpp::FutureReturnCode::SUCCESS)
             {
                 RCLCPP_ERROR(this->get_logger(), "Failed to call marker_correction service");
-                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
+                abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
                 break;
             }
 
             if (!result.get()->status)
             {
                 RCLCPP_ERROR(this->get_logger(), "Marker correction failed");
-                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
+                abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
                 break;
             }
         }
-        else if (status_ == ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP)
+        else if (status_ == ib2_msgs::msg::CtlStatusType::MOVING_TO_RDP)
             goaled = true;
         if (reachGoalDock())
             return;
@@ -481,16 +481,16 @@ void ib2::Ctl::docking(bool correction)
     controller_.flash();
     if (goaled)
     {
-        status_ = ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY;
+        status_ = ib2_msgs::msg::CtlStatusType::DOCKING_STAND_BY;
         dockingStandBy();
     }
     else if (dtc_.status() == Dtc::DETECT::COLLISION)
     {
         dtc_.clearStatus();
-        status_ = ib2_interfaces::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
+        status_ = ib2_msgs::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
     }
-    else if (status_ != ib2_interfaces::msg::CtlStatusType::STAND_BY)
-        status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+    else if (status_ != ib2_msgs::msg::CtlStatusType::STAND_BY)
+        status_ = ib2_msgs::msg::CtlStatusType::KEEP_POSE;
 }
 
 //------------------------------------------------------------------------------
@@ -527,7 +527,7 @@ void ib2::Ctl::dockingStandBy()
             break;
         }
     }
-    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
     abortAction(aborted ?
                 CtlCommand::Result::TERMINATE_ABORTED :
                 CtlCommand::Result::TERMINATE_TIME_OUT);
@@ -537,7 +537,7 @@ void ib2::Ctl::dockingStandBy()
 // スキャンモードの処理
 void ib2::Ctl::scan()
 {
-    status_ = ib2_interfaces::msg::CtlStatusType::SCAN;
+    status_ = ib2_msgs::msg::CtlStatusType::SCAN;
     size_t nscan(profiler_.nscan());
     for (size_t i = 0; i < nscan; ++i)
     {
@@ -545,19 +545,19 @@ void ib2::Ctl::scan()
         profile_pub_->publish(profmsg);
         controller_.flash();
         
-        if (!guidance(ib2_interfaces::msg::CtlStatusType::SCAN, 
+        if (!guidance(ib2_msgs::msg::CtlStatusType::SCAN, 
                       tolerance_pos_stop_, tolerance_att_stop_))
         {
-            status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+            status_ = ib2_msgs::msg::CtlStatusType::KEEP_POSE;
             break;
         }
         else if (i + 1 == nscan)
         {
-            ib2_interfaces::action::CtlCommand::Result r;
+            ib2_msgs::action::CtlCommand::Result r;
             r.stamp = this->now();
-            r.type = ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV;
+            r.type = ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_NAV;
             goal_handle_->succeed(std::make_shared<CtlCommand::Result>(r));
-            status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+            status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
         }
     }
 }
@@ -566,21 +566,21 @@ void ib2::Ctl::scan()
 // 停止誘導モードの処理
 void ib2::Ctl::stopping()
 {
-    status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
+    status_ = ib2_msgs::msg::CtlStatusType::STOP_MOVING;
     auto profmsg(profiler_.stoppingProfile(last_nav_stamp_, body_));
     profile_pub_->publish(profmsg);
     controller_.flash();
-    if (guidance(ib2_interfaces::msg::CtlStatusType::STOP_MOVING, 
+    if (guidance(ib2_msgs::msg::CtlStatusType::STOP_MOVING, 
                  tolerance_pos_stop_, tolerance_att_stop_))
         goalTarget();
-    status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+    status_ = ib2_msgs::msg::CtlStatusType::KEEP_POSE;
 }
 
 //------------------------------------------------------------------------------
 // アクション中止
 void ib2::Ctl::abortAction(uint8_t result_type)
 {
-    ib2_interfaces::action::CtlCommand::Result r;
+    ib2_msgs::action::CtlCommand::Result r;
     r.stamp = this->now();
     r.type = result_type;
     if (goal_handle_->is_active())
@@ -594,7 +594,7 @@ void ib2::Ctl::abortAction(uint8_t result_type)
 void ib2::Ctl::cancelTarget(bool docking)
 {
     RCLCPP_INFO(this->get_logger(), "%s: Preempted", COMMAND_ACTION.c_str());
-    status_ = ib2_interfaces::msg::CtlStatusType::STOP_MOVING;
+    status_ = ib2_msgs::msg::CtlStatusType::STOP_MOVING;
     auto profmsg(profiler_.stoppingProfile(last_nav_stamp_, body_));
     profile_pub_->publish(profmsg);
     controller_.flash();
@@ -623,7 +623,7 @@ void ib2::Ctl::cancelTarget(bool docking)
 
     if (docking)
     {
-        status_ = ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDA_AIP;
+        status_ = ib2_msgs::msg::CtlStatusType::MOVING_TO_RDA_AIP;
         auto ipos(ib2::PosAttProfiler::DOCKING_POS::AIP);
         auto iatt(ib2::PosAttProfiler::DOCKING_ATT::RDA);
         auto profmsg(profiler_.dockingProfile
@@ -676,7 +676,7 @@ void ib2::Ctl::timeoutNavigation()
 
     abortAction(CtlCommand::Result::TERMINATE_INVALID_NAV);
     setKeepPose();
-    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
 
     auto tn = rclcpp::Time(this->now(),
                            RCL_ROS_TIME);
@@ -689,7 +689,7 @@ void ib2::Ctl::timeoutNavigation()
 // 制御目標到達判定
 bool ib2::Ctl::reachGoal
 (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
- const ib2_interfaces::action::CtlCommand::Feedback& fb, double tolp, double tola)
+ const ib2_msgs::action::CtlCommand::Feedback& fb, double tolp, double tola)
 {
     using namespace ib2_mss;
     auto& rgo(fb.pose_to_go.position);
@@ -718,7 +718,7 @@ bool ib2::Ctl::reachGoal
 // 制御目標到達判定(SCAN)
 bool ib2::Ctl::reachGoalScan
 (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
- const ib2_interfaces::action::CtlCommand::Feedback& fb, double tola)
+ const ib2_msgs::action::CtlCommand::Feedback& fb, double tola)
 {
     using namespace ib2_mss;
     double qgo(2. * acos(fb.pose_to_go.orientation.w));
@@ -744,7 +744,7 @@ bool ib2::Ctl::reachGoalDock()
         return false;
 
     goalTarget();
-    status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+    status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
     dtc_.clearStatus();
     return true;
 }
@@ -767,7 +767,7 @@ bool ib2::Ctl::validCommand(const std::shared_ptr<const CtlCommand::Goal>& goal)
 
 //------------------------------------------------------------------------------
 // 航法メッセージ妥当性確認
-bool ib2::Ctl::validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first) const
+bool ib2::Ctl::validNavigation(const ib2_msgs::msg::Navigation& nav, bool first) const
 {
     rclcpp::Time tn(nav.pose.header.stamp.sec,
                     nav.pose.header.stamp.nanosec,
@@ -883,52 +883,52 @@ void ib2::Ctl::commandCallback(const std::shared_ptr<GoalHandleCtlCommand>& goal
                           RCL_ROS_TIME);
         if (!valid_navigation_ || tcmd - tnav > interval_feedback_)
             throw std::domain_error("no valid navigation message");
-        if (goal->type.type < ib2_interfaces::msg::CtlStatusType::STOP_MOVING)
+        if (goal->type.type < ib2_msgs::msg::CtlStatusType::STOP_MOVING)
         {
-            status_ = (goal->type.type == ib2_interfaces::msg::CtlStatusType::STAND_BY ? 
-                       ib2_interfaces::msg::CtlStatusType::STAND_BY : 
-                       ib2_interfaces::msg::CtlStatusType::KEEP_POSE);
+            status_ = (goal->type.type == ib2_msgs::msg::CtlStatusType::STAND_BY ? 
+                       ib2_msgs::msg::CtlStatusType::STAND_BY : 
+                       ib2_msgs::msg::CtlStatusType::KEEP_POSE);
             setKeepPose();
             controller_.flash();
             goalTarget();
         }
-        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::RELEASE)
+        else if (goal->type.type == ib2_msgs::msg::CtlStatusType::RELEASE)
             release();
-        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::DOCK)
+        else if (goal->type.type == ib2_msgs::msg::CtlStatusType::DOCK)
             docking(true);
-        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::DOCK_WITHOUT_CORRECTION)
+        else if (goal->type.type == ib2_msgs::msg::CtlStatusType::DOCK_WITHOUT_CORRECTION)
             docking(false);
-        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::SCAN)
+        else if (goal->type.type == ib2_msgs::msg::CtlStatusType::SCAN)
             scan();
-        else if (goal->type.type == ib2_interfaces::msg::CtlStatusType::STOP_MOVING)
+        else if (goal->type.type == ib2_msgs::msg::CtlStatusType::STOP_MOVING)
             target();
-        else if ((goal->type.type == ib2_interfaces::msg::CtlStatusType::MOVE_TO_RELATIVE_TARGET ||
-                  goal->type.type == ib2_interfaces::msg::CtlStatusType::MOVE_TO_ABSOLUTE_TARGET) &&
+        else if ((goal->type.type == ib2_msgs::msg::CtlStatusType::MOVE_TO_RELATIVE_TARGET ||
+                  goal->type.type == ib2_msgs::msg::CtlStatusType::MOVE_TO_ABSOLUTE_TARGET) &&
                   validCommand(goal))
             target();
         else
-            abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+            abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
     }
     catch (const std::exception& e) 
     {
         std::string what(ib2_mss::Log::caughtException(e.what()));
         RCLCPP_ERROR(this->get_logger(), "%s", what.c_str());
-        abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
-        status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+        abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+        status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
     }
     catch (...) 
     {
         RCLCPP_ERROR(this->get_logger(), "caught exception at ib2::Ctl::commandCallback");
-        abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
-        status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+        abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_CMD);
+        status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
     }
 }
 
 //------------------------------------------------------------------------------
 // Callback of update parameter service
 bool ib2::Ctl::updateCallback(
-    const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
-    std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res)
+    const std::shared_ptr<ib2_msgs::srv::UpdateParameter::Request> req,
+    std::shared_ptr<ib2_msgs::srv::UpdateParameter::Response> res)
 {
     // ROS_INFO("Update Parameters by /ctl/update_params");
     RCLCPP_INFO(this->get_logger(), "%s: Updating parameters", UPDATE_SERVICE.c_str());
@@ -937,19 +937,19 @@ bool ib2::Ctl::updateCallback(
     if (setMember())
     {
         RCLCPP_INFO(this->get_logger(), "%s: Succeeded", UPDATE_SERVICE.c_str());
-        res->status = ib2_interfaces::srv::UpdateParameter::Response::SUCCESS;
+        res->status = ib2_msgs::srv::UpdateParameter::Response::SUCCESS;
     }
     else
     {
         RCLCPP_ERROR(this->get_logger(), "%s: Failed", UPDATE_SERVICE.c_str());
-        res->status = ib2_interfaces::srv::UpdateParameter::Response::FAILURE_UPDATE;
+        res->status = ib2_msgs::srv::UpdateParameter::Response::FAILURE_UPDATE;
     }
     return true;
 }
 
 //------------------------------------------------------------------------------
 // Callback of subscribe on the TOPIC_NAV_POSE
-void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
+void ib2::Ctl::navinfoCallback(const ib2_msgs::msg::Navigation& nav_stamp)
 {
 //    ROS_INFO_STREAM(nav_stamp);
     static size_t invalid_counter(0);
@@ -964,9 +964,9 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
                 return;
             invalid_counter = 0;
             if (goal_handle_->is_active())
-                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
+                abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_INVALID_NAV);
             setKeepPose();
-            status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+            status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
             valid_navigation_ = false;
         }
         else
@@ -978,49 +978,49 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
         if (reset)
         {
             setKeepPose();
-            status_ = ib2_interfaces::msg::CtlStatusType::STAND_BY;
+            status_ = ib2_msgs::msg::CtlStatusType::STAND_BY;
             reset = false;
             valid_navigation_ = true;
         }
         
         // 検知処理
         auto dtc_status(dtc_.detection(nav_stamp, status_));
-        if (status_ == ib2_interfaces::msg::CtlStatusType::STAND_BY)
+        if (status_ == ib2_msgs::msg::CtlStatusType::STAND_BY)
             dtc_.clearStatus();
         else if (dtc_status == Dtc::DETECT::DISTURBED && 
-            status_ != ib2_interfaces::msg::CtlStatusType::RELEASE &&
-            status_ != ib2_interfaces::msg::CtlStatusType::MOVING_TO_RDP &&
-            status_ != ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY)
-            status_ = ib2_interfaces::msg::CtlStatusType::DISTURBED;
+            status_ != ib2_msgs::msg::CtlStatusType::RELEASE &&
+            status_ != ib2_msgs::msg::CtlStatusType::MOVING_TO_RDP &&
+            status_ != ib2_msgs::msg::CtlStatusType::DOCKING_STAND_BY)
+            status_ = ib2_msgs::msg::CtlStatusType::DISTURBED;
         else if (dtc_status == Dtc::DETECT::COLLISION)
         {
-            if (status_ == ib2_interfaces::msg::CtlStatusType::RELEASE)
+            if (status_ == ib2_msgs::msg::CtlStatusType::RELEASE)
                 dtc_.clearStatus();
             else if (!goal_handle_->is_active())
             {
                 dtc_.clearStatus();
                 setKeepPose();
-                status_ = ib2_interfaces::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
+                status_ = ib2_msgs::msg::CtlStatusType::KEEPING_POSE_BY_COLLISION;
             }
         }
         else if (dtc_status == Dtc::DETECT::CREW_CAPTURE)
         {
             if (goal_handle_->is_active())
-                abortAction(ib2_interfaces::action::CtlCommand::Result::TERMINATE_ABORTED);
-            status_ = ib2_interfaces::msg::CtlStatusType::CAPTURED;
+                abortAction(ib2_msgs::action::CtlCommand::Result::TERMINATE_ABORTED);
+            status_ = ib2_msgs::msg::CtlStatusType::CAPTURED;
         }
         else if (dtc_status == Dtc::DETECT::CREW_RELEASE)
         {
             dtc_.clearStatus();
             setKeepPose();
-            status_ = ib2_interfaces::msg::CtlStatusType::KEEP_POSE;
+            status_ = ib2_msgs::msg::CtlStatusType::KEEP_POSE;
         }
         RCLCPP_DEBUG(this->get_logger(), "Ctl status: %d", status_);
 
         // 制御停止判定
         static bool publishWrench = true;
-        if (status_ < ib2_interfaces::msg::CtlStatusType::KEEP_POSE ||
-            status_ == ib2_interfaces::msg::CtlStatusType::DOCKING_STAND_BY)
+        if (status_ < ib2_msgs::msg::CtlStatusType::KEEP_POSE ||
+            status_ == ib2_msgs::msg::CtlStatusType::DOCKING_STAND_BY)
         {
             if (publishWrench)
             {
@@ -1046,7 +1046,7 @@ void ib2::Ctl::navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp)
             // 力トルク
             geometry_msgs::msg::WrenchStamped wrench
             (controller_.wrenchCommand(nav_stamp, p, body_));
-            if (status_ == ib2_interfaces::msg::CtlStatusType::SCAN)
+            if (status_ == ib2_msgs::msg::CtlStatusType::SCAN)
             {
                 wrench.wrench.force.x = 0.;
                 wrench.wrench.force.y = 0.;

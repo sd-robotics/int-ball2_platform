@@ -15,13 +15,13 @@
 #include <geometry_msgs/msg/wrench_stamped.hpp> 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
-#include "ib2_interfaces/msg/navigation.hpp"
-#include "ib2_interfaces/msg/ctl_status_type.hpp"
-#include "ib2_interfaces/msg/ctl_status.hpp"
-#include "ib2_interfaces/msg/ctl_profile.hpp"
-#include "ib2_interfaces/action/ctl_command.hpp"
-#include "ib2_interfaces/srv/update_parameter.hpp"
-#include "ib2_interfaces/srv/marker_correction.hpp"
+#include "ib2_msgs/msg/navigation.hpp"
+#include "ib2_msgs/msg/ctl_status_type.hpp"
+#include "ib2_msgs/msg/ctl_status.hpp"
+#include "ib2_msgs/msg/ctl_profile.hpp"
+#include "ib2_msgs/action/ctl_command.hpp"
+#include "ib2_msgs/srv/update_parameter.hpp"
+#include "ib2_msgs/srv/marker_correction.hpp"
 
 #include <memory>
 
@@ -54,7 +54,7 @@ private:
     Ctl() = delete;
 
 public:
-    using CtlCommand = ib2_interfaces::action::CtlCommand;
+    using CtlCommand = ib2_msgs::action::CtlCommand;
     using GoalHandleCtlCommand = rclcpp_action::ServerGoalHandle<CtlCommand>;
 
     /** コンストラクタ */
@@ -152,7 +152,7 @@ private:
      */
     bool reachGoal
     (bool& stay, rclcpp::Time& tin, const rclcpp::Time& tnav,
-     const ib2_interfaces::action::CtlCommand::Feedback& fb, double tolp, double tola);
+     const ib2_msgs::action::CtlCommand::Feedback& fb, double tolp, double tola);
 
     /** 制御目標到達判定(SCAN)
      * @param [in, out] stay 制御目標周辺継続判定結果
@@ -184,7 +184,7 @@ private:
      * @retval true 妥当
      * @retval false 不正
      */
-    bool validNavigation(const ib2_interfaces::msg::Navigation& nav, bool first) const;
+    bool validNavigation(const ib2_msgs::msg::Navigation& nav, bool first) const;
     
     //--------------------------------------------------------------------------
     // 実装（コールバック関数）
@@ -201,14 +201,14 @@ public:
      * @retval false 更新失敗
      */
     bool updateCallback(
-        const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
-        std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res
+        const std::shared_ptr<ib2_msgs::srv::UpdateParameter::Request> req,
+        std::shared_ptr<ib2_msgs::srv::UpdateParameter::Response> res
     );
 
     /** 航法値のサブスクライバのコールバック関数
      * @param [in] nav_stamp 航法値
      */
-    void navinfoCallback(const ib2_interfaces::msg::Navigation& nav_stamp);
+    void navinfoCallback(const ib2_msgs::msg::Navigation& nav_stamp);
 
     /** 定期的な処理
      * @param [in] ev タイマーイベント
@@ -230,10 +230,10 @@ private:
     std::shared_ptr<GoalHandleCtlCommand> goal_handle_;
 
     /** パラメータ更新サービスサーバ */
-    rclcpp::Service<ib2_interfaces::srv::UpdateParameter>::SharedPtr update_ss_;
+    rclcpp::Service<ib2_msgs::srv::UpdateParameter>::SharedPtr update_ss_;
 
     /** マーカー補正サービスクライアント */
-    rclcpp::Client<ib2_interfaces::srv::MarkerCorrection>::SharedPtr marker_sc_;
+    rclcpp::Client<ib2_msgs::srv::MarkerCorrection>::SharedPtr marker_sc_;
     
     /** 誘導制御ステータス出力間隔 */
     rclcpp::Duration interval_status_;
@@ -288,23 +288,23 @@ private:
     
     // Subscriber
     /** 航法値のサブスクライバ */
-    rclcpp::Subscription<ib2_interfaces::msg::Navigation>::SharedPtr navinfo_sub_;
+    rclcpp::Subscription<ib2_msgs::msg::Navigation>::SharedPtr navinfo_sub_;
 
     /** TODO: 目標値のサブスクライバ */
-    rclcpp::Subscription<ib2_interfaces::msg::Navigation>::SharedPtr target_sub_;
+    rclcpp::Subscription<ib2_msgs::msg::Navigation>::SharedPtr target_sub_;
 
     // Publisher
     /** 誘導制御モードパブリッシャ */
-    rclcpp::Publisher<ib2_interfaces::msg::CtlStatus>::SharedPtr status_pub_;
+    rclcpp::Publisher<ib2_msgs::msg::CtlStatus>::SharedPtr status_pub_;
 
     /** 力トルクのパブリッシャ */
     rclcpp::Publisher<geometry_msgs::msg::WrenchStamped>::SharedPtr wrench_pub_;
 
     /** 制御プロファイルのパブリッシャ */
-    rclcpp::Publisher<ib2_interfaces::msg::CtlProfile>::SharedPtr profile_pub_;
+    rclcpp::Publisher<ib2_msgs::msg::CtlProfile>::SharedPtr profile_pub_;
 
     /** 航法メッセージの前回値 */
-    ib2_interfaces::msg::Navigation last_nav_stamp_;
+    ib2_msgs::msg::Navigation last_nav_stamp_;
 
     /** 機体パラメータ */
     ib2::CtlBody body_;

@@ -20,7 +20,7 @@ ib2::PropTlmCmd::PropTlmCmd(const rclcpp::NodeOptions& options = rclcpp::NodeOpt
 	// ファン駆動状態メッセージ初期化
 	fan_status_.duty.layout.dim.push_back(example_interfaces::msg::MultiArrayDimension());
 	fan_status_.duty.data.resize(fan_num_, 0.0);
-	initFanStatus(ib2_interfaces::msg::PowerStatus::ON);
+	initFanStatus(ib2_msgs::msg::PowerStatus::ON);
 	
 	// ファン駆動デューティ比サブスクライバ
 	sub_fan_duty_ = this->create_subscription<example_interfaces::msg::Float64MultiArray>(
@@ -28,10 +28,10 @@ ib2::PropTlmCmd::PropTlmCmd(const rclcpp::NodeOptions& options = rclcpp::NodeOpt
 		std::bind(&ib2::PropTlmCmd::subFanDuty, this, std::placeholders::_1));
 
 	// ファン駆動状態パブリッシャ
-	pub_fan_status_ = this->create_publisher<ib2_interfaces::msg::FanStatus>(TOPIC_PROP_STATUS, 1);
+	pub_fan_status_ = this->create_publisher<ib2_msgs::msg::FanStatus>(TOPIC_PROP_STATUS, 1);
 
 	// ファン駆動モード設定サービスサーバ
-	switch_power_server_ = this->create_service<ib2_interfaces::srv::SwitchPower>(
+	switch_power_server_ = this->create_service<ib2_msgs::srv::SwitchPower>(
 		SERVICE_SWITCH_POWER,
 		std::bind(&ib2::PropTlmCmd::switchPower, this, std::placeholders::_1, std::placeholders::_2));
 }
@@ -50,7 +50,7 @@ void ib2::PropTlmCmd::subFanDuty(const example_interfaces::msg::Float64MultiArra
 	if(size != fan_num_)
 	{
 		RCLCPP_ERROR(this->get_logger(), "Prop Node Subscribed Invalid Size(%d) of Fan Duty", size);
-		initFanStatus(ib2_interfaces::msg::PowerStatus::UNKNOWN);
+		initFanStatus(ib2_msgs::msg::PowerStatus::UNKNOWN);
 		return;
 	}
 
@@ -66,7 +66,7 @@ void ib2::PropTlmCmd::generateFanStatus()
 	initFanStatus(fan_status_.current_power.status);
 
 	// 推進機能が停止の場合は、デューティ比 = 0とする
-	if(fan_status_.current_power.status != ib2_interfaces::msg::PowerStatus::ON)
+	if(fan_status_.current_power.status != ib2_msgs::msg::PowerStatus::ON)
 	{
 		return;
 	}
@@ -89,20 +89,20 @@ void ib2::PropTlmCmd::pubFanStatus()
 // ファン駆動状態(異常停止中)をパブリッシュ
 void ib2::PropTlmCmd::pubErrorFanStatus()
 {
-	initFanStatus(ib2_interfaces::msg::PowerStatus::UNKNOWN);
+	initFanStatus(ib2_msgs::msg::PowerStatus::UNKNOWN);
 	pubFanStatus();
 }
 
 //------------------------------------------------------------------------------
 // 推進機能起動/停止
 bool ib2::PropTlmCmd::switchPower(
-        const std::shared_ptr<ib2_interfaces::srv::SwitchPower::Request> req,
-        std::shared_ptr<ib2_interfaces::srv::SwitchPower::Response> res)
+        const std::shared_ptr<ib2_msgs::srv::SwitchPower::Request> req,
+        std::shared_ptr<ib2_msgs::srv::SwitchPower::Response> res)
 {
 	fan_status_.current_power.status = req->power.status;
 	res->current_power.status  = fan_status_.current_power.status;
 
-	if(req->power.status != ib2_interfaces::msg::PowerStatus::ON)
+	if(req->power.status != ib2_msgs::msg::PowerStatus::ON)
 	{
 		for(int i = 0; i < fan_num_; i++)
 		{
@@ -170,7 +170,7 @@ void ib2::PropTlmCmd::shutdown()
 		// switch_power_server_.reset();
 	}
 
-	initFanStatus(ib2_interfaces::msg::PowerStatus::UNKNOWN);
+	initFanStatus(ib2_msgs::msg::PowerStatus::UNKNOWN);
 }
 
 // End Of File -----------------------------------------------------------------

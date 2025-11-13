@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ib2_interfaces/msg/ctl_status.hpp"
+#include "ib2_msgs/msg/ctl_status.hpp"
 
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Dense>
@@ -84,7 +84,7 @@ public:
      * @param [in] status 誘導制御ステータス
      * @return 誘導制御ステータスメッセージ
      */
-    ib2_interfaces::msg::CtlStatus status(int32_t status) const;
+    ib2_msgs::msg::CtlStatus status(int32_t status) const;
 
     //--------------------------------------------------------------------------
     // メンバ変数

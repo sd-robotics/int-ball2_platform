@@ -13,7 +13,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(builtin_interfaces REQUIRED)
-find_package(ib2_interfaces REQUIRED)
+find_package(ib2_msgs REQUIRED)
 find_package(ib2_ctl_common REQUIRED)
 
 find_package(Eigen3 REQUIRED)
@@ -54,7 +54,7 @@ ament_target_dependencies(${PROJECT_NAME}
   "geometry_msgs"
   "example_interfaces"
   "builtin_interfaces"
-  "ib2_interfaces"
+  "ib2_msgs"
   "ib2_ctl_common"
 )
 target_link_libraries(${PROJECT_NAME}

@@ -88,7 +88,7 @@ geometry_msgs::msg::WrenchStamped ib2::PosAttController::wrenchCommandStop
 //------------------------------------------------------------------------------
 // 力トルクコマンドの計算
 geometry_msgs::msg::WrenchStamped ib2::PosAttController::wrenchCommand
-(const ib2_interfaces::msg::Navigation& nav, const CtlElements &p, const ib2::CtlBody& b)
+(const ib2_msgs::msg::Navigation& nav, const CtlElements &p, const ib2::CtlBody& b)
 {
     // 航法値
     auto& tn(nav.pose.header.stamp);

@@ -3,7 +3,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Dense>
 #include <geometry_msgs/msg/wrench_stamped.hpp>
-#include "ib2_interfaces/msg/navigation.hpp"
+#include "ib2_msgs/msg/navigation.hpp"
 #include "ib2_ctl/pos_controller.h"
 #include "ib2_ctl/att_controller.h"
 #include "ib2_ctl/ctl_elements.h"
@@ -80,7 +80,7 @@ namespace ib2
          * @return 力トルクコマンドメッセージ
          */
         geometry_msgs::msg::WrenchStamped wrenchCommand
-        (const ib2_interfaces::msg::Navigation& nav, 
+        (const ib2_msgs::msg::Navigation& nav, 
          const CtlElements& p, const CtlBody& b);
         
         //----------------------------------------------------------------------

@@ -5,9 +5,9 @@
 #include "ib2_prop/prop_common.h"
 #include <example_interfaces/msg/float64_multi_array.hpp>
 #include <example_interfaces/msg/multi_array_dimension.hpp>
-#include "ib2_interfaces/msg/fan_status.hpp"
-#include "ib2_interfaces/msg/power_status.hpp"
-#include "ib2_interfaces/srv/switch_power.hpp"
+#include "ib2_msgs/msg/fan_status.hpp"
+#include "ib2_msgs/msg/power_status.hpp"
+#include "ib2_msgs/srv/switch_power.hpp"
 
 #define TOPIC_CTL_DUTY               "/ctl/duty"
 #define TOPIC_PROP_STATUS            "/prop/status"
@@ -91,8 +91,8 @@ private:
 	 * @retval                     false            設定失敗
 	 */
 	bool switchPower(
-        const std::shared_ptr<ib2_interfaces::srv::SwitchPower::Request> req,
-        std::shared_ptr<ib2_interfaces::srv::SwitchPower::Response> res
+        const std::shared_ptr<ib2_msgs::srv::SwitchPower::Request> req,
+        std::shared_ptr<ib2_msgs::srv::SwitchPower::Response> res
 	);
 
 	//----------------------------------------------------------------------
@@ -102,10 +102,10 @@ private:
 	rclcpp::Subscription<example_interfaces::msg::Float64MultiArray>::SharedPtr sub_fan_duty_;
 
 	/** 推進機能ノードのファン駆動状態パブリッシャ */
-	rclcpp::Publisher<ib2_interfaces::msg::FanStatus>::SharedPtr pub_fan_status_;
+	rclcpp::Publisher<ib2_msgs::msg::FanStatus>::SharedPtr pub_fan_status_;
 
 	/** 推進機能起動/停止サービスサーバ */
-    rclcpp::Service<ib2_interfaces::srv::SwitchPower>::SharedPtr switch_power_server_;
+    rclcpp::Service<ib2_msgs::srv::SwitchPower>::SharedPtr switch_power_server_;
 
 	/** ファン数 */
 	int32_t                          fan_num_;
@@ -114,7 +114,7 @@ private:
 	example_interfaces::msg::Float64MultiArray fan_duty_;
 
 	/** ファン駆動状態メッセージ */
-	ib2_interfaces::msg::FanStatus	 fan_status_;
+	ib2_msgs::msg::FanStatus	 fan_status_;
 };
 
 }  // namespace ib2

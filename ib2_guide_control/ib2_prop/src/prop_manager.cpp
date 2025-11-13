@@ -59,7 +59,7 @@ ib2::PropManager::PropManager(const rclcpp::NodeOptions& options = rclcpp::NodeO
     }
 
     // パラメータ更新サービスサーバ
-    update_params_server_ = this->create_service<ib2_interfaces::srv::UpdateParameter>(
+    update_params_server_ = this->create_service<ib2_msgs::srv::UpdateParameter>(
         SERVICE_UPDATE_PARAMS, std::bind(&ib2::PropManager::updateParams, this, std::placeholders::_1, std::placeholders::_2));
 }
 
@@ -184,8 +184,8 @@ int ib2::PropManager::getParameter()
 //------------------------------------------------------------------------------
 // パラメータ更新
 bool ib2::PropManager::updateParams(
-    const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
-    std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res)
+    const std::shared_ptr<ib2_msgs::srv::UpdateParameter::Request> req,
+    std::shared_ptr<ib2_msgs::srv::UpdateParameter::Response> res)
 {
     RCLCPP_INFO(this->get_logger(), "Update Parameters by prop.update_params");
 
@@ -195,12 +195,12 @@ bool ib2::PropManager::updateParams(
     if (err == 0)
     {
         RCLCPP_INFO(this->get_logger(), "%s: Succeeded", SERVICE_UPDATE_PARAMS);
-        res->status = ib2_interfaces::srv::UpdateParameter::Response::SUCCESS;
+        res->status = ib2_msgs::srv::UpdateParameter::Response::SUCCESS;
     }
     else
     {
         RCLCPP_ERROR(this->get_logger(), "%s: Failed : err = %d", SERVICE_UPDATE_PARAMS, err);
-        res->status = ib2_interfaces::srv::UpdateParameter::Response::FAILURE_UPDATE;
+        res->status = ib2_msgs::srv::UpdateParameter::Response::FAILURE_UPDATE;
     }
 
     return true;

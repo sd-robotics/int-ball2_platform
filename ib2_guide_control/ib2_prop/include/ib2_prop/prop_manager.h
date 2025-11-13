@@ -8,7 +8,7 @@
 #include <rclcpp_components/register_node_macro.hpp>
 #include "ib2_prop/prop_tlmcmd.h"
 #include "ib2_prop/prop_pca9685.h"
-#include "ib2_interfaces/srv/update_parameter.hpp"
+#include "ib2_msgs/srv/update_parameter.hpp"
 
 #define   SERVICE_UPDATE_PARAMS       "/prop/update_params"
 #define   FAN_NUM     	8
@@ -79,8 +79,8 @@ private:
 	 * @retval                     false                 更新失敗
 	 */
 	bool updateParams(
-        const std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Request> req,
-        std::shared_ptr<ib2_interfaces::srv::UpdateParameter::Response> res);
+        const std::shared_ptr<ib2_msgs::srv::UpdateParameter::Request> req,
+        std::shared_ptr<ib2_msgs::srv::UpdateParameter::Response> res);
 
 	//----------------------------------------------------------------------
 	// メンバ変数
@@ -93,7 +93,7 @@ private:
 	rclcpp::TimerBase::SharedPtr  	 pwm_control_timer_;
 
 	/** パラメータ更新サービスサーバ */
-	rclcpp::Service<ib2_interfaces::srv::UpdateParameter>::SharedPtr update_params_server_;
+	rclcpp::Service<ib2_msgs::srv::UpdateParameter>::SharedPtr update_params_server_;
 
     /* ファン数 */
     int32_t                          fan_num_;
